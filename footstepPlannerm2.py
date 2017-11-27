@@ -87,10 +87,12 @@ if __name__ == '__main__':
 		# TODO: Minimize distances of footsteps from each other
 		for fNum in range(1,numFootsteps):
 			pass
+			# Left to left
+			# prog.AddQuadraticCost()
 
 		# Add cost (distance of final footsteps to goal)
-		prog.AddQuadraticCost(np.eye(2), linconst, f[2*numFootsteps-1])
-		prog.AddQuadraticCost(np.eye(2), linconst, f[2*numFootsteps-2])
+		prog.AddQuadraticCost(10*np.eye(2), 10*linconst, f[2*numFootsteps-1])
+		prog.AddQuadraticCost(10*np.eye(2), 10*linconst, f[2*numFootsteps-2])
 		
 		# Solve the program
 		result = prog.Solve()

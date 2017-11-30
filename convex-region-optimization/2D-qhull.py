@@ -18,6 +18,15 @@ from scipy.spatial import ConvexHull
 # Make numpy round printed values
 np.set_printoptions(suppress=True)
 
+# image-id generator
+import sys
+import os 
+import string
+import random
+def id_gen(dim, size=6, chars=string.ascii_uppercase+string.digits):
+	dir_path = os.path.dirname(os.path.realpath(__file__))
+	return dir_path + '/' + str(dim) + 'D-' + ''.join(random.choice(chars) for _ in range(size)) + '.png'
+
 def normalize(v):
 	mag = np.linalg.norm(v)
 	if(mag==0):
@@ -111,4 +120,7 @@ if __name__ == '__main__':
 	plt.annotate("SOL: (" + str(round(finalx[0], 3)) + ", " + str(round(finalx[1], 3)) + ")", xy=(finalx[0], finalx[1]))
 	plt.plot([x_goal[0]], [x_goal[1]], 'r*', markersize=15, markerfacecolor='r') # goal
 	plt.annotate("GOAL: (" + str(round(x_goal[0], 3)) + ", " + str(round(x_goal[1], 3)) + ")", xy=(x_goal[0], x_goal[1]))
+
+	if(len(sys.argv)>1 and sys.argv[1]=='-s'): # save image
+		fig.savefig(id_gen(dim))
 	plt.show() # Show plot

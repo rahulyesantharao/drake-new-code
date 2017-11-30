@@ -34,7 +34,7 @@ if __name__ == '__main__':
 	# ********* HARD CODE POINTS/REGIONS OF INTEREST *********
 	# Set Goal Point
 	dim = 3
-	num_regions = 2
+	num_regions = 3
 	# Create Polytope V-representations
 	# P = []
 	# v1 = np.array([(0,0,0), (0,0,1), (0,1,0), (1,0,0), (0,1,1), (1,0,1), (1,1,0), (0.5, 0.5, 0.5), (1,1,1)]) # numpy array of vertices of A1
@@ -48,6 +48,8 @@ if __name__ == '__main__':
 
 	# ********* CONVERT V-REPRESENTATIONS TO H-REPRESENTATIONS *********
 	# Convert region convex hulls to H-representation
+	# Basic Tetrahedron
+	# basictet = [(0,0,0), (1,0,0), (0,1,0), (0,0,1)]
 	chulls = []
 	A = []
 	b = []
@@ -57,8 +59,9 @@ if __name__ == '__main__':
 		temp = np.zeros(dim)
 		temp[0] += j
 		pts = ConvexHull(np.random.rand(4, dim) + temp) # generate the vertices
-		# print("TEST***")
-		# print(pts.simplices)
+		# pts = ConvexHull(np.array(basictet))
+		print("TEST***")
+		print(pts.simplices)
 		chulls.append(pts)
 		# P.append(np.array([pts.points[i] for i in pts.vertices]))
 		A.append(np.delete(pts.equations, pts.equations.shape[1]-1, 1))
@@ -130,10 +133,10 @@ if __name__ == '__main__':
 	assert(solver.available())
 	assert(solver.solver_type()==mp.SolverType.kGurobi)
 	result = solver.Solve(prog)
-	# assert(result == mp.SolutionResult.kSolutionFound)
-	# print("Goal: " + str(x_goal))
-	# finalx = prog.GetSolution(x)
-	# print("Final Solution: " + str(finalx))
+	assert(result == mp.SolutionResult.kSolutionFound)
+	print("Goal: " + str(x_goal))
+	finalx = prog.GetSolution(x)
+	print("Final Solution: " + str(finalx))
 
 	# ********* GRAPH PROBLEM *********
 	# Create figure
@@ -147,10 +150,17 @@ if __name__ == '__main__':
 		for simplex in chulls[j].simplices:
 			print(simplex)
 			print(chulls[j].points[simplex])
-			plt.plot(chulls[j].points[simplex, 0], chulls[j].points[simplex, 1], chulls[j].points[simplex, 2], 'b')
+			for i in range(len(simplex)):
+				cur = simplex[i]
+				n = simplex[(i+1)%(len(simplex))]
+				# print([chulls[j].points[cur][0], chulls[j].points[n][0]])
+				# print([chulls[j].points[cur][1], chulls[j].points[n][1]])
+				# print([chulls[j].points[cur][2], chulls[j].points[n][2]])
+				plt.plot([chulls[j].points[cur][0], chulls[j].points[n][0]], [chulls[j].points[cur][1], chulls[j].points[n][1]], [chulls[j].points[cur][2], chulls[j].points[n][2]], 'b')
+			# plt.plot(chulls[j].points[simplex, 0], chulls[j].points[simplex, 1], chulls[j].points[simplex, 2], 'b')
 
-	# plt.plot([finalx[0]], [finalx[1]], 'g*', markersize=15, markerfacecolor='g') # solution
-	# plt.annotate("SOL: (" + str(round(finalx[0], 3)) + ", " + str(round(finalx[1], 3)) + ")", xy=(finalx[0], finalx[1]))
+	plt.plot([finalx[0]], [finalx[1]], [finalx[2]], 'g*', markersize=15, markerfacecolor='g') # solution
+	ax.text(finalx[0], finalx[1], finalx[2], "SOL: (" + str(round(finalx[0], 3)) + ", " + str(round(finalx[1], 3)) + ", " + str(round(finalx[2], 3)) + ")")
 	plt.plot([x_goal[0]], [x_goal[1]], [x_goal[2]], 'r*', markersize=15, markerfacecolor='r') # goal
-	plt.annotate("GOAL: (" + str(round(x_goal[0], 3)) + ", " + str(round(x_goal[1], 3)) + ")", xy=(x_goal[0], x_goal[1]))
+	ax.text(x_goal[0], x_goal[1], x_goal[2], "GOAL: (" + str(round(x_goal[0], 3)) + ", " + str(round(x_goal[1], 3)) + ", " + str(round(x_goal[2], 3)) + ")")
 	plt.show() # Show plot

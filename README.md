@@ -4,7 +4,7 @@
 Python code written for the new Drake distro.
 Before using, `source setup.sh`.
 
-## convex-region-optimization ##
+## [convex-region-optimization](convex-region-optimization) ##
 
 ### [2D-qhull.py](convex-region-optimization/2D-qhull.py) ###
 Can solve for the closest point within a number of 2D regions to a goal point (run with -s to save the outputted image).

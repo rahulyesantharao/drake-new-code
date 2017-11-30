@@ -2,6 +2,7 @@
 
 # Footstep Planning Code for Drake #
 Python code written for the new Drake distro
+Before using, `source setup.sh`.
 
 ## convex-region-optimization ##
 

@@ -154,7 +154,7 @@ if __name__ == '__main__':
 					alpha=0.1
 				)
 			)
-		# Rig
+		
 		# Plot goal point
 		plt.plot(goal[0], goal[1], 'bo')
 		plt.annotate("GOAL: (" + str(round(goal[0], 3)) + ", " + str(round(goal[1], 3)) + ")", xy=(goal[0], goal[1]))

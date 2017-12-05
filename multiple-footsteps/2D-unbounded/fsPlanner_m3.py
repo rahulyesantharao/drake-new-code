@@ -93,11 +93,11 @@ if __name__ == '__main__':
 		prog.AddLinearConstraint(-f[2*fNum+1][1] + M*z[fNum] <= -f[2*numFootsteps-1][1]+M)
 
 	# Add cost (distance of final footsteps to goal)
-	prog.AddQuadraticCost(10*((f[2*numFootsteps-1][0]-goal[0])**2 + (f[2*numFootsteps-1][1]-goal[1])**2))
-	prog.AddQuadraticCost(10*((f[2*numFootsteps-2][0]-goal[0])**2 + (f[2*numFootsteps-2][1]-goal[1])**2))
+	prog.AddQuadraticCost(2*((f[2*numFootsteps-1][0]-goal[0])**2 + (f[2*numFootsteps-1][1]-goal[1])**2))
+	prog.AddQuadraticCost(2*((f[2*numFootsteps-2][0]-goal[0])**2 + (f[2*numFootsteps-2][1]-goal[1])**2))
 	
 	# Add cost (number of footsteps)
-	prog.AddLinearCost(-np.sum(z) * 5)
+	prog.AddLinearCost(-np.sum(z) * 50)
 
 	# Solve the program
 	solver = GurobiSolver()

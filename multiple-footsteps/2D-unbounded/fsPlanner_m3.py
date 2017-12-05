@@ -28,7 +28,7 @@ if __name__ == '__main__':
 	# Set up goal point
 	goalX, goalY = 10, 10 #input("Goal Displacement (X,Y): ")
 	goal = np.array([goalX, goalY])
-	linconst = np.array([-goal[0], -goal[1]])
+	# linconst = np.array([-goal[0], -goal[1]])
 
 	# Try reaching the goal in numFootsteps
 	# Create quadratic program
@@ -68,10 +68,9 @@ if __name__ == '__main__':
 		prog.AddLinearConstraint(f[2*fNum+1][0]<=f[2*fNum][0])
 
 	# TODO: Minimize distances of footsteps from each other
-	for fNum in range(1,numFootsteps):
-		pass
-		# Left to left
-		# prog.AddQuadraticCost()
+	for fNum in range(1,2*numFootsteps-1):
+		# Add cost of consecutive footsteps
+		prog.AddQuadraticCost((f[fNum][0]-f[fNum+1][0])**2 + (f[fNum][1]-f[fNum+1][1])**2)
 
 	# big M
 	M = 100
@@ -94,11 +93,11 @@ if __name__ == '__main__':
 		prog.AddLinearConstraint(-f[2*fNum+1][1] + M*z[fNum] <= -f[2*numFootsteps-1][1]+M)
 
 	# Add cost (distance of final footsteps to goal)
-	prog.AddQuadraticCost(10*np.eye(2), 10*linconst, f[2*numFootsteps-1])
-	prog.AddQuadraticCost(10*np.eye(2), 10*linconst, f[2*numFootsteps-2])
+	prog.AddQuadraticCost(10*((f[2*numFootsteps-1][0]-goal[0])**2 + (f[2*numFootsteps-1][1]-goal[1])**2))
+	prog.AddQuadraticCost(10*((f[2*numFootsteps-2][0]-goal[0])**2 + (f[2*numFootsteps-2][1]-goal[1])**2))
 	
 	# Add cost (number of footsteps)
-	prog.AddLinearCost(-np.sum(z) * 0.5)
+	prog.AddLinearCost(-np.sum(z) * 5)
 
 	# Solve the program
 	solver = GurobiSolver()
@@ -110,9 +109,13 @@ if __name__ == '__main__':
 	finalLstep = prog.GetSolution(f[2*numFootsteps-2])
 	finalPos = np.array([(finalLstep[0]+finalRstep[0])/2.0, (finalLstep[1]+finalRstep[1])/2.0])
 	# Print out the z
+	ansSteps = numFootsteps
 	print(result)
 	for fNum in range(numFootsteps):
-		print(str(fNum) + ": " + str(prog.GetSolution(z[fNum])))
+		curZ = prog.GetSolution(z[fNum])
+		if(int(curZ)==1 and ansSteps==numFootsteps): ansSteps = fNum+1
+		print(str(fNum) + ": " + str(curZ))
+
 	print("")
 
 	# Make sure it can be solved
@@ -122,7 +125,7 @@ if __name__ == '__main__':
 	sb = fig.add_subplot(111)
 	
 	# Left footsteps
-	for l in range(numFootsteps):
+	for l in range(ansSteps):
 		pt = prog.GetSolution(f[2*l])
 		plt.plot(pt[0], pt[1], 'ro')
 		lbl = "L"+str(l)
@@ -142,7 +145,7 @@ if __name__ == '__main__':
 			)
 		)
 	# Right footsteps
-	for r in range(numFootsteps):
+	for r in range(ansSteps):
 		pt = prog.GetSolution(f[2*r+1])
 		plt.plot(pt[0], pt[1], 'go')
 		lbl = "R"+str(r)
@@ -169,7 +172,7 @@ if __name__ == '__main__':
 	# Format
 	plt.xlabel("X Displacement")
 	plt.ylabel("Y Displacement")
-	plt.title(str(numFootsteps) + " Footsteps")
+	plt.title(str(ansSteps) + " Footsteps")
 
 	# mng = plt.get_current_fig_manager()
 	# mng.window.showMaximized()

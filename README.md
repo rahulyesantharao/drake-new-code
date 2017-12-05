@@ -5,10 +5,10 @@ Python code written for the new Drake distro.
 Before using, `source setup.sh`.
 
 ## Todo ##
-[ ] Make the reachable regions from footsteps into general convex regions
-[ ] Add a nominal and reachable distinction (so it is much costlier to step outside of some scaled-down version of the reachable region)
-[ ] Add an option to make the reachable region into multiple convex regions
-[ ] Use LCM (eventually, use it to build into the old MATLAB planner to allow for simulation of created footstep plans)
+- [ ] Make the reachable regions from footsteps into general convex regions
+- [ ] Add a nominal and reachable distinction (so it is much costlier to step outside of some scaled-down version of the reachable region)
+- [ ] Add an option to make the reachable region into multiple convex regions
+- [ ] Use LCM (eventually, use it to build into the old MATLAB planner to allow for simulation of created footstep plans)
 
 ## [convex-region-optimization](convex-region-optimization) ##
 

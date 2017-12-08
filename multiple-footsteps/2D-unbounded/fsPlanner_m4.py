@@ -1,5 +1,4 @@
-# Finds the best number of footsteps
-
+# Finds the best number of footsteps AND uses a convex region for the constrains on the footsteps
 from __future__ import absolute_import
 
 # Pydrake imports
@@ -9,9 +8,18 @@ from pydrake.solvers import mathematicalprogram as mp
 from pydrake.solvers.gurobi import GurobiSolver
 import pydrake.symbolic as sym
 
-# Pyplot to plot footsteps
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+# Plotter
+import sys
+import os
+myDir = os.path.dirname(os.path.abspath(__file__))
+parentDir = os.path.split(myDir)[0]
+if(sys.path.__contains__(parentDir)):
+    print('parent already in path')
+    pass
+else:
+    print('parent directory added')
+    sys.path.append(parentDir)
+from FootstepPlanner import Plotter
 
 # Make numpy round printed values
 np.set_printoptions(suppress=True)
@@ -54,20 +62,11 @@ if __name__ == '__main__':
 	prog.AddLinearConstraint(f[1][0] == 0)
 	prog.AddLinearConstraint(f[1][1] == -FOOTDIST/2)
 
-	# For each set of left, right footsteps [1, numFootsteps-1], they must be the same distance from the previous left/right footstep
+	# For each set of left, right footsteps [1, numFootsteps-1], they must be within the reachable convex region defined by the previous step
 	for fNum in range(1,numFootsteps):
 		# ***** Make assumption that the orientation is roughly in the +x direction *****
-		# Current Left Footstep (2*fNum) is positioned based on previous Right Footstep (2*fNum-1)
-		prog.AddLinearConstraint(f[2*fNum][1]>=f[2*fNum-1][1]+YDISP*0.5) # More than 0.5*FOOTDIST above
-		prog.AddLinearConstraint(f[2*fNum][1]<=f[2*fNum-1][1]+YDISP*1.5) # Less than 1.5*FOOTDIST below
-		prog.AddLinearConstraint(f[2*fNum][0]>=f[2*fNum-1][0]-XDISP)
-		prog.AddLinearConstraint(f[2*fNum][0]<=f[2*fNum-1][0]+XDISP)
-
-		# Current Right Footstep (2*fNum+1) is positioned based on previous Left Footstep (2*fNum)
-		prog.AddLinearConstraint(f[2*fNum+1][1]<=f[2*fNum][1]-YDISP*0.5) # More than 0.5*FOOTDIST below
-		prog.AddLinearConstraint(f[2*fNum+1][1]>=f[2*fNum][1]-YDISP*1.5) # Less than 1.5*FOOTDIST above
-		prog.AddLinearConstraint(f[2*fNum+1][0]>=f[2*fNum][0]-XDISP)
-		prog.AddLinearConstraint(f[2*fNum+1][0]<=f[2*fNum][0])
+		## FIGURE THIS OUT ##
+		pass
 
 	# TODO: Minimize distances of footsteps from each other
 	for fNum in range(1,2*numFootsteps-1):
@@ -120,62 +119,4 @@ if __name__ == '__main__':
 
 	print("")
 
-	# Make sure it can be solved
-	assert(result==mp.SolutionResult.kSolutionFound)
-
-	fig = plt.figure(1, (20, 10))
-	sb = fig.add_subplot(111)
-	
-	# Left footsteps
-	for l in range(ansSteps):
-		pt = prog.GetSolution(f[2*l])
-		plt.plot(pt[0], pt[1], 'ro')
-		lbl = "L"+str(l)
-		h = ""
-		if(l%2): h="|"
-		plt.annotate(lbl + "(" + str(round(pt[0], 3)) + ", " + str(round(pt[1], 3)) + ")", xy=(pt[0], pt[1]))
-		sb.add_patch(
-			patches.Rectangle(
-				(pt[0]-XDISP, pt[1]-1.5*YDISP),
-				XDISP,
-				YDISP,
-				hatch=h,
-				facecolor='red',
-				edgecolor='red',
-				label=lbl,
-				alpha=0.1
-			)
-		)
-	# Right footsteps
-	for r in range(ansSteps):
-		pt = prog.GetSolution(f[2*r+1])
-		plt.plot(pt[0], pt[1], 'go')
-		lbl = "R"+str(r)
-		h = ""
-		if(r%2): h="|"
-		plt.annotate(lbl + "(" + str(round(pt[0], 3)) + ", " + str(round(pt[1], 3)) + ")", xy=(pt[0], pt[1]))
-		sb.add_patch(
-			patches.Rectangle(
-				(pt[0]-XDISP, pt[1]+0.5*YDISP),
-				2*XDISP,
-				YDISP,
-				hatch=h,
-				facecolor='green',
-				edgecolor='green',
-				label=lbl,
-				alpha=0.1
-			)
-		)
-	
-	# Plot goal point
-	plt.plot(goal[0], goal[1], 'bo')
-	plt.annotate("GOAL: (" + str(round(goal[0], 3)) + ", " + str(round(goal[1], 3)) + ")", xy=(goal[0], goal[1]))
-	
-	# Format
-	plt.xlabel("X Displacement")
-	plt.ylabel("Y Displacement")
-	plt.title(str(ansSteps) + " Footsteps")
-
-	# mng = plt.get_current_fig_manager()
-	# mng.window.showMaximized()
-	plt.show()
+	test = Plotter(2, goal, np.array(ansFootsteps), ansSteps) # Add the convex reachable regions

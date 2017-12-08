@@ -1,5 +1,3 @@
-# Finds the best number of footsteps
-
 from __future__ import absolute_import
 
 # Pydrake imports
@@ -10,8 +8,11 @@ from pydrake.solvers.gurobi import GurobiSolver
 import pydrake.symbolic as sym
 
 # Pyplot to plot footsteps
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+# import matplotlib.pyplot as plt
+# import matplotlib.patches as patches
+
+# Plotter
+from Plotter import Plotter
 
 # Make numpy round printed values
 np.set_printoptions(suppress=True)
@@ -69,7 +70,7 @@ if __name__ == '__main__':
 		prog.AddLinearConstraint(f[2*fNum+1][0]>=f[2*fNum][0]-XDISP)
 		prog.AddLinearConstraint(f[2*fNum+1][0]<=f[2*fNum][0])
 
-	# TODO: Minimize distances of footsteps from each other
+	# Minimize distances of footsteps from each other
 	for fNum in range(1,2*numFootsteps-1):
 		# Add cost of consecutive footsteps
 		prog.AddQuadraticCost((f[fNum][0]-f[fNum+1][0])**2 + (f[fNum][1]-f[fNum+1][1])**2)
@@ -112,70 +113,17 @@ if __name__ == '__main__':
 	finalPos = np.array([(finalLstep[0]+finalRstep[0])/2.0, (finalLstep[1]+finalRstep[1])/2.0])
 	# Print out the z
 	ansSteps = numFootsteps
+	ansFootsteps = []
 	print(result)
 	for fNum in range(numFootsteps):
+		ansFootsteps.append(prog.GetSolution(f[2*fNum]))
+		ansFootsteps.append(prog.GetSolution(f[2*fNum+1]))
 		curZ = prog.GetSolution(z[fNum])
 		if(int(curZ)==1 and ansSteps==numFootsteps): ansSteps = fNum+1
 		print(str(fNum) + ": " + str(curZ))
 
 	print("")
 
-	# Make sure it can be solved
-	assert(result==mp.SolutionResult.kSolutionFound)
-
-	fig = plt.figure(1, (20, 10))
-	sb = fig.add_subplot(111)
-	
-	# Left footsteps
-	for l in range(ansSteps):
-		pt = prog.GetSolution(f[2*l])
-		plt.plot(pt[0], pt[1], 'ro')
-		lbl = "L"+str(l)
-		h = ""
-		if(l%2): h="|"
-		plt.annotate(lbl + "(" + str(round(pt[0], 3)) + ", " + str(round(pt[1], 3)) + ")", xy=(pt[0], pt[1]))
-		sb.add_patch(
-			patches.Rectangle(
-				(pt[0]-XDISP, pt[1]-1.5*YDISP),
-				XDISP,
-				YDISP,
-				hatch=h,
-				facecolor='red',
-				edgecolor='red',
-				label=lbl,
-				alpha=0.1
-			)
-		)
-	# Right footsteps
-	for r in range(ansSteps):
-		pt = prog.GetSolution(f[2*r+1])
-		plt.plot(pt[0], pt[1], 'go')
-		lbl = "R"+str(r)
-		h = ""
-		if(r%2): h="|"
-		plt.annotate(lbl + "(" + str(round(pt[0], 3)) + ", " + str(round(pt[1], 3)) + ")", xy=(pt[0], pt[1]))
-		sb.add_patch(
-			patches.Rectangle(
-				(pt[0]-XDISP, pt[1]+0.5*YDISP),
-				2*XDISP,
-				YDISP,
-				hatch=h,
-				facecolor='green',
-				edgecolor='green',
-				label=lbl,
-				alpha=0.1
-			)
-		)
-	
-	# Plot goal point
-	plt.plot(goal[0], goal[1], 'bo')
-	plt.annotate("GOAL: (" + str(round(goal[0], 3)) + ", " + str(round(goal[1], 3)) + ")", xy=(goal[0], goal[1]))
-	
-	# Format
-	plt.xlabel("X Displacement")
-	plt.ylabel("Y Displacement")
-	plt.title(str(ansSteps) + " Footsteps")
-
-	# mng = plt.get_current_fig_manager()
-	# mng.window.showMaximized()
-	plt.show()
+	test = Plotter(2, goal, np.array(ansFootsteps), ansSteps)
+	test.plot()
+	test.save()

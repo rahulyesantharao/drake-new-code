@@ -1,0 +1,7 @@
+package bot_core;
+
+struct position_3d_t
+{
+   vector_3d_t translation;
+   quaternion_t rotation;
+}

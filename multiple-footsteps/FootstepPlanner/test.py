@@ -12,4 +12,4 @@ if __name__ == '__main__':
 
 	f.setObstacleFree(temp)
 	f.solveProgram()
-	f.showSolution()
+	f.showSolution(save=True)

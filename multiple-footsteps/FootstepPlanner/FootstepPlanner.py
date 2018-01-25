@@ -188,6 +188,7 @@ class FootstepPlanner:
 		if(self.hasObstacleFree):
 			p.setObstacleFree(self.oChulls)
 		p.plot()
-		p.show()
 		if(save):
 			p.save()
+		p.show()
+		

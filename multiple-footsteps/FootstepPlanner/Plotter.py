@@ -97,8 +97,8 @@ class Plotter:
 				plt.annotate("L"+str(i), xy=self.footsteps[2*i+1]) # annotation
 				for simplex in self.reachable_chull.simplices: # Region reachable from footstep
 					plt.plot(self.reachable_chull.points[simplex, 0] + self.footsteps[2*i+1][0], self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i+1][1]-self.yOffset), color='red', alpha=0.75)
-				if(self.hasNominal): # nominal region from footstep
-					for simplex in self.reachable_chull.simplices: # nominal region from Right footstep
+				if(self.hasNominal):
+					for simplex in self.reachable_chull.simplices: # nominal region from footstep
 						plt.plot(self.nominalRatio*self.reachable_chull.points[simplex, 0] + self.footsteps[2*i+1][0], self.nominalRatio*self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i+1][1]-self.yOffset), color='red', alpha=0.75)
 
 			# plot obstacle free regions

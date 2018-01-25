@@ -12,6 +12,7 @@ struct footstep_t
 	boolean is_in_contact;
 
 	// These flags specify whether the foot position is considered fixed, typically due to direct adjustment by the user
+	// DEFAULT TO FALSE
 	boolean fixed_x;
 	boolean fixed_y;
 	boolean fixed_z;
@@ -20,10 +21,12 @@ struct footstep_t
 	boolean fixed_yaw;
 
 	// These parameters encode the slice of terrain from the previous position of this foot to the current position, and are used to compute the swing trajectory later
+	// IGNORE THESE
 	int32_t num_terrain_pts;
 	float terrain_path_dist[num_terrain_pts];
 	float terrain_height[num_terrain_pts];
 
+// IGNORE
 	double infeasibility;
 
 	footstep_params_t params;

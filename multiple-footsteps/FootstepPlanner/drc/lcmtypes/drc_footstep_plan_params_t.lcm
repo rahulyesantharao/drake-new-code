@@ -2,11 +2,26 @@ package drc;
 
 struct footstep_plan_params_t
 {
+	// timestamp 
 	int64_t utime;
 
+	// set to reasonable amounts
 	int32_t max_num_steps;
 	int32_t min_num_steps;
 
+	 // 'nom_forward_step', 0.25,... % m
+	 //  'max_forward_step', 0.35,...% m
+	 //  'max_backward_step', 0.2,...% m
+	 //  'max_step_width', 0.38,...% m
+	 //  'min_step_width', 0.18,...% m
+	 //  'nom_step_width', 0.26,...% m
+	 //  'max_outward_angle', pi/8,... % rad
+	 //  'max_inward_angle', 0.01,... % rad
+	 //  'nom_upward_step', 0.25,... % m
+	 //  'nom_downward_step', 0.25,...% m
+	 //  'max_num_steps', 10,...
+	 //  'min_num_steps', 1,...
+	 //  'leading_foot', 1
 	// Parameters which define the feasible foot offsets
 	float min_step_width;
 	float nom_step_width;
@@ -16,23 +31,27 @@ struct footstep_plan_params_t
 	float nom_upward_step;
 	float nom_downward_step;
 
+	// set to 0
 	int8_t planning_mode;
 	const int8_t MODE_AUTO = 0;
 	const int8_t MODE_SPLINE = 1;
 	const int8_t MODE_NO_SPLINE = 2;
 
+	// set to 0
     int8_t behavior;
     const int8_t BEHAVIOR_WALKING = 0;
     const int8_t BEHAVIOR_CRAWLING = 1;
     const int8_t BEHAVIOR_BDI_WALKING = 2;
     const int8_t BEHAVIOR_BDI_STEPPING = 3;
 
+    // set to 3
     int8_t map_mode;
     const int8_t TERRAIN_HEIGHTS_AND_NORMALS = 0;
     const int8_t TERRAIN_HEIGHTS_Z_NORMALS = 1;
     const int8_t FOOT_PLANE = 2;
     const int8_t HORIZONTAL_PLANE = 3;
 
+    // set to 1 (look into lead_auto)
 	int8_t leading_foot;
 	const int8_t LEAD_RIGHT = 1;
 	const int8_t LEAD_LEFT = 0;

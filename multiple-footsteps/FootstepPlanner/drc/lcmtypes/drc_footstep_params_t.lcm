@@ -18,7 +18,19 @@ struct footstep_params_t
   // foot to roll and pitch while swinging.
   boolean constrain_full_foot_pose;
 
-  // BDI-specific parameters
+// 'step_speed', 0.5,... % speed of the swing foot (m/s)
+// 'step_height', 0.05,... % approximate clearance over terrain (m)
+// 'drake_min_hold_time', 0.7,... % minimum time in double support (s)
+// 'drake_instep_shift', 0.0,... % Distance to shift ZMP trajectory inward toward the instep from the center of the foot (m)
+// 'mu', 1.0,... % friction coefficient
+// 'constrain_full_foot_pose', true,... % whether to constrain the swing foot roll and pitch
+// 'pelvis_height_above_foot_sole', 0.83,... % default pelvis height when walking
+// 'support_contact_groups', {{'heel', 'toe'}},... % which contact groups are available for support when walking
+// 'prevent_swing_undershoot', false,... % prevent the first phase of the swing from going backwards while moving to the first knot point
+// 'prevent_swing_overshoot', false,... % prevent the final phase of the swing from moving forward of the last knot point
+// 'nominal_LIP_COM_height', 0.80); % nominal height used to construct D_ls for our linear inverted pendulum model
+
+  // BDI-specific parameters - IGNORE THESE PROBABLY
   float bdi_step_duration;
   float bdi_sway_duration;
   float bdi_lift_height;
@@ -29,20 +41,22 @@ struct footstep_params_t
   float bdi_sway_end_dist;
   float bdi_step_end_dist;
 
-  // IHMC-specific parameters
+  // IHMC-specific parameters - PROBABLY IGNORE
   float ihmc_transfer_time;
   float ihmc_swing_time;
 
   float mu;
 
-  // Distance to shift ZMP trajectory inward toward the instep from the center of the foot (m)
+  // Distance to shift ZMP trajectory inward toward the instep from the center of the foot (m) - HAS DEFAULT
   float drake_instep_shift;
 
+// SET TO 0
   int8_t support_contact_groups;
   const int8_t SUPPORT_GROUPS_HEEL_TOE = 0;
   const int8_t SUPPORT_GROUPS_MIDFOOT_TOE = 1;
   const int8_t SUPPORT_GROUPS_HEEL_MIDFOOT = 2;
 
+// SET TO FALSE
   boolean prevent_swing_undershoot;
   boolean prevent_swing_overshoot;
 }

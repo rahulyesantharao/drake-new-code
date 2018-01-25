@@ -56,6 +56,7 @@ class FootstepPlanner:
 		assert(isinstance(nominalRatio, float) and (0<nominalRatio<1)), "nominalRatio needs to be in (0,1): " + str(nominalRatio)
 		self.nominal = nominalRatio
 		self.hasNominal = True
+		self.upToDate = False
 
 	def setGoal(self, goal):
 		assert(isinstance(goal, list) and len(goal)==self.dim), "goal needs to be a " + str(self.dim) + "-length list of coordinates; it is " + str(goal)

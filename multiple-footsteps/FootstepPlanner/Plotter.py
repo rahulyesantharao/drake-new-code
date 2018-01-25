@@ -124,8 +124,10 @@ class Plotter:
 		if(not self.upToDate):
 			print("Not up to date; run plot() to update")
 		name = self.name_gen()
+		while(os.path.isfile(name)):
+			name = self.name_gen() # Make sure file does not already exist
 		fig = plt.figure(self.figNum, (20, 10))
-		fig.savefig(name, bbox_inches='tight')
+		fig.savefig(name, bbox_inches='tight') 
 
 	def name_gen(self):
 		idsize=6

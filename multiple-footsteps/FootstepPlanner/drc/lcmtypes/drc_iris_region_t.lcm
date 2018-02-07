@@ -1,0 +1,10 @@
+package drc;
+
+struct iris_region_t
+{
+	int64_t utime;
+
+	lin_con_t lin_con;
+
+	bot_core.position_3d_t seed_pose;
+}

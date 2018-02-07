@@ -18,14 +18,15 @@ np.set_printoptions(suppress=True)
 
 class FootstepPlanner:
 	MAXFOOTSTEPS = 10
-	STARTL = (0, 1)
-	STARTR = (0, -1)
 	def __init__(self, dim):
 		assert(dim==2), "must be 2D; it is: " + str(dim)
 		self.dim = dim
 		# Footstep plan
 		self.footsteps = None
 		self.goal = None
+		self.start = None
+		self.startL = None
+		self.startR = None
 		self.numFootsteps = -1
 		self.upToDate = True
 		# Convex reachable regions based on previous footstep
@@ -63,6 +64,20 @@ class FootstepPlanner:
 		self.goal = np.array(goal)
 		self.upToDate = False
 
+	def setStart(self, start):
+		assert(isinstance(start, list) and len(start)==self.dim), "start needs to be a " + str(self.dim) + "-length list of coordinates; it is " + str(start)
+		self.start = np.array(start)
+		self.startL = (self.start[0], self.start[1]+0.12)
+		self.startR = (self.start[0], self.start[1]-0.12)
+		self.upToDate = False
+
+	def setStartRL(self, startR, startL):
+		# assert(isinstance(startL, list) and isinstance(startR, list) and len(startL)==self.dim and len(startR)==self.dim), "startL, startR need to be " + str(self.dim) + "-length tuples of coordinates; they are: " + type(startL) + ", " + type(startR)
+		self.startL = (startL[0][0], startL[1][0])
+		self.startR = (startR[0][0], startR[1][0])
+		self.start = np.array([(startL[0]+startR[0])/2, (startL[1]+startR[1])/2])
+		self.upToDate = False
+
 	def setObstacleFree(self, regions):
 		assert(isinstance(regions, list)), "regions needs to be a list of regions (lists of points): " + str(type(regions))
 		self.num_regions = 0
@@ -94,10 +109,10 @@ class FootstepPlanner:
 
 			# CONSTRAIN WITH REACHABLE REGIONS
 			# Start position
-			prog.AddLinearConstraint(f[0][0] == FootstepPlanner.STARTR[0])
-			prog.AddLinearConstraint(f[0][1] == FootstepPlanner.STARTR[1])
-			prog.AddLinearConstraint(f[1][0] == FootstepPlanner.STARTL[0])
-			prog.AddLinearConstraint(f[1][1] == FootstepPlanner.STARTL[1])
+			prog.AddLinearConstraint(f[0][0] == self.startR[0])
+			prog.AddLinearConstraint(f[0][1] == self.startR[1])
+			prog.AddLinearConstraint(f[1][0] == self.startL[0])
+			prog.AddLinearConstraint(f[1][1] == self.startL[1])
 			# All other footsteps
 			for fNum in range(1, FootstepPlanner.MAXFOOTSTEPS):
 				for i in range(self.reachableA.shape[0]):

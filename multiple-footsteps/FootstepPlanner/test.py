@@ -3,6 +3,7 @@ from FootstepPlanner import FootstepPlanner
 if __name__ == '__main__':
 	f = FootstepPlanner(2)
 	f.setReachable([(0,-1), (2,0), (0,1), (-2,0)], 2.0)
+	f.setStart([0, 0])
 	f.setGoal([10, 10])
 	f.setNominal(0.5)
 

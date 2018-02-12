@@ -25,7 +25,7 @@ Before using, `source setup.sh`. Then `python setup-test.py` to make sure pydrak
 
 ### [multiple-footsteps/FootstepPlanner](multiple-footsteps/FootstepPlanner) ###
 A Python package that can create footstep plans based on various input parameters, including start position, end position, convex obstacle-free regions, and nominal footstep regions. See the [README](multiple-footsteps/FootstepPlanner/README.md) in the folder for more info.
-![FootstepPlanner output](/multiple-footsteps/FootstepPlanner/images/2D-$LBRCN.png?raw=true "FootstepPlanner Output")
+![FootstepPlanner output](/multiple-footsteps/FootstepPlanner/images/2D-4LBRCN.png?raw=true "FootstepPlanner Output")
 
 ## [convex-region-optimization](convex-region-optimization) ##
 

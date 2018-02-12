@@ -63,6 +63,7 @@ if __name__== "__main__":
 			rstep = drc.footstep_t()
 			rstep.pos.rotation.w = 1
 			rspos = np.array([[f.footsteps[2*fNum][0]], [f.footsteps[2*fNum][1]], [0]])
+			# rs = np.array([f.footsteps[2*fNum][0], f.footsteps[2*fNum][1], 0])
 			rs = robot.transformPoints(kinsol, rspos, robot.FindBody("r_foot").get_body_index(), robot.findFrame("r_foot_sole").get_frame_index())
 			print("Right: " + str(rs))
 			rstep.pos.translation.x = rs[0]
@@ -77,6 +78,7 @@ if __name__== "__main__":
 			lstep = drc.footstep_t()
 			lstep.pos.rotation.w = 1
 			lspos = np.array([[f.footsteps[2*fNum+1][0]], [f.footsteps[2*fNum+1][1]], [0]])
+			# ls = np.array([f.footsteps[2*fNum+1][0], f.footsteps[2*fNum+1][1], 0])
 			ls = robot.transformPoints(kinsol, lspos, robot.FindBody("l_foot").get_body_index(), robot.findFrame("l_foot_sole").get_frame_index())
 			print("Left: "  + str(ls))
 			lstep.pos.translation.x = ls[0]

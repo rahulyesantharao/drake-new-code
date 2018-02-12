@@ -169,8 +169,8 @@ class FootstepPlanner:
 			prog.AddLinearCost(-np.sum(z) * 5)
 
 			# Cost of distance of final position to goal
-			prog.AddQuadraticCost(1*((f[2*FootstepPlanner.MAXFOOTSTEPS-1][0]-self.goal[0])**2 + (f[2*FootstepPlanner.MAXFOOTSTEPS-1][1]-self.goal[1])**2))
-			prog.AddQuadraticCost(1*((f[2*FootstepPlanner.MAXFOOTSTEPS-2][0]-self.goal[0])**2 + (f[2*FootstepPlanner.MAXFOOTSTEPS-2][1]-self.goal[1])**2))
+			prog.AddQuadraticCost(1000*((f[2*FootstepPlanner.MAXFOOTSTEPS-1][0]-self.goal[0])**2 + (f[2*FootstepPlanner.MAXFOOTSTEPS-1][1]-self.goal[1])**2))
+			prog.AddQuadraticCost(1000*((f[2*FootstepPlanner.MAXFOOTSTEPS-2][0]-self.goal[0])**2 + (f[2*FootstepPlanner.MAXFOOTSTEPS-2][1]-self.goal[1])**2))
 
 			# SOLVE PROBLEM
 			solver = GurobiSolver()

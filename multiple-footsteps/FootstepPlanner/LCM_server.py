@@ -90,6 +90,8 @@ if __name__== "__main__":
 			lstep.params = request.default_step_params
 			plan.footsteps.append(lstep)
 
+		print("goal_pos: " + str(request.goal_pos.translation.x) + ", " + str(request.goal_pos.translation.y))
+
 		# - IRIS Regions
 		plan.num_iris_regions = request.num_iris_regions
 		plan.iris_regions = request.iris_regions

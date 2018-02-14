@@ -9,8 +9,11 @@ import pydrake.symbolic as sym
 if __name__ == '__main__':
 	prog = mp.MathematicalProgram()
 	x = prog.NewContinuousVariables(2, "x")
-	prog.AddLinearConstraint(x[0] >= 1)
-	prog.AddLinearConstraint(x[1] >= 1)
+	
+	prog.AddLorentzConeConstraint(np.array([0*x[0]+1, x[0]-1, x[1]-1]))
+
+	# prog.AddLinearConstraint(x[0] >= 1)
+	# prog.AddLinearConstraint(x[1] >= 1)
 	prog.AddQuadraticCost(np.eye(2), np.zeros(2), x)
 	result = prog.Solve()
 

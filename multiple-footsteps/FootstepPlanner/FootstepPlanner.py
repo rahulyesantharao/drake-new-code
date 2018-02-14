@@ -30,12 +30,12 @@ class FootstepPlanner:
 		self.numFootsteps = -1
 		self.upToDate = True
 		# Convex reachable regions based on previous footstep
-		self.reachableChull = None
-		self.reachableA = None
-		self.reachableb = None
+		self.c1 = None
+		self.c2 = None
+		self.r1 = -1
+		self.r2 = -1
 		self.hasNominal = False
 		self.nominal = -1
-		self.yOffset = 0
 		# Obstacle Free Regions
 		self.hasObstacleFree = False
 		self.num_regions = -1
@@ -43,14 +43,14 @@ class FootstepPlanner:
 		self.oA = None
 		self.ob = None
 
-	# pointSet needs to be centered around the origin	
-	def setReachable(self, pointSet, yOffset):
-		assert(isinstance(pointSet, list)), "pointSet needs to be a list of points; instead it is " + str(type(pointSet))
-		assert(isinstance(yOffset, float)), "yOffset needs to be a float; instead it is " + str(type(yOffset))
-		self.reachableChull = ConvexHull(np.array(pointSet))
-		self.reachableA = np.delete(self.reachableChull.equations, self.reachableChull.equations.shape[1]-1, 1)
-		self.reachableb = -1*self.reachableChull.equations[:,self.reachableChull.equations.shape[1]-1]
-		self.yOffset = yOffset
+	# The reachable region is defined by two circles, given by their centers and radii
+	def setReachable(self, center1, radius1, center2, radius2):
+		assert(isinstance(center1, list) and len(center1)==self.dim and isinstance(center2, list) and len(center2)==self.dim), "center1, center2 must be " + str(self.dim) + "D lists of coordinates; instead they are " + str(center1) + ", " + str(center2)
+		assert(isinstance(radius1, float) and isinstance(radius2, float)), "radius1, radius2 need to be floats; instead they are " + str(type(radius1)) + ", " + str(type(radius2))
+		self.c1 = center1
+		self.r1 = radius1
+		self.c2 = center2
+		self.r2 = radius2
 		self.upToDate = False
 
 	def setNominal(self, nominalRatio):
@@ -115,13 +115,16 @@ class FootstepPlanner:
 			prog.AddLinearConstraint(f[1][1] == self.startL[1])
 			# All other footsteps
 			for fNum in range(1, FootstepPlanner.MAXFOOTSTEPS):
-				for i in range(self.reachableA.shape[0]):
+				# for i in range(self.reachableA.shape[0]):
 					# Constrain footsteps
-					prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum][0]-f[2*fNum-1][0]) + self.reachableA[i][1]*(f[2*fNum][1]-(f[2*fNum-1][1]-self.yOffset)) <= self.reachableb[i]) # Right Footstep (2*fNum) to previous left (2*fNum-1)
-					prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum+1][0]-f[2*fNum][0]) + self.reachableA[i][1]*(f[2*fNum+1][1]-(f[2*fNum][1]+self.yOffset)) <= self.reachableb[i]) # Left Footstep (2*fNum+1) to previous right (2*fNum)
+					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r1, f[2*fNum][0]-(f[2*fNum-1][0]+self.c1[0]), f[2*fNum][1]-(f[2*fNum-1][1]+self.c1[1])])) # Right Footstep (2*fNum) to previous left (2*fNum-1)
+					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r2, f[2*fNum][0]-(f[2*fNum-1][0]+self.c2[0]), f[2*fNum][1]-(f[2*fNum-1][1]+self.c2[1])])) #  by constraining it to be within the two circles
+					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r1, f[2*fNum+1][0]-(f[2*fNum][0]+self.c1[0]), f[2*fNum+1][1]-(f[2*fNum][1]+self.c1[1])])) # Left Footstep (2*fNum+1) to previous right (2*fNum)
+					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r2, f[2*fNum+1][0]-(f[2*fNum][0]+self.c2[0]), f[2*fNum+1][1]-(f[2*fNum][1]+self.c2[1])])) #  by constraining to be within the two circles
 					if(self.hasNominal): # Nominal Regions
-						prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum][0]-f[2*fNum-1][0]) + self.reachableA[i][1]*(f[2*fNum][1]-(f[2*fNum-1][1]-self.yOffset)) + n[2*fNum]*M <= self.nominal*self.reachableb[i] + M) # Right Footstep (2*fNum) to previous left (2*fNum-1)
-						prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum+1][0]-f[2*fNum][0]) + self.reachableA[i][1]*(f[2*fNum+1][1]-(f[2*fNum][1]+self.yOffset)) + n[2*fNum+1]*M <= self.nominal*self.reachableb[i] + M) # Left Footstep (2*fNum+1) to previous right (2*fNum)
+						pass
+						# prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum][0]-f[2*fNum-1][0]) + self.reachableA[i][1]*(f[2*fNum][1]-(f[2*fNum-1][1]-self.yOffset)) + n[2*fNum]*M <= self.nominal*self.reachableb[i] + M) # Right Footstep (2*fNum) to previous left (2*fNum-1)
+						# prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum+1][0]-f[2*fNum][0]) + self.reachableA[i][1]*(f[2*fNum+1][1]-(f[2*fNum][1]+self.yOffset)) + n[2*fNum+1]*M <= self.nominal*self.reachableb[i] + M) # Left Footstep (2*fNum+1) to previous right (2*fNum)
 
 			# CONSTRAIN TO OBSTACLE FREE REGIONS
 			if(self.hasObstacleFree):
@@ -198,7 +201,7 @@ class FootstepPlanner:
 
 		if(not self.upToDate):
 			print("Solution not up to date; please run solve() to update the solution")
-		p = Plotter(self.dim, self.goal, self.footsteps, self.numFootsteps, self.reachableChull, self.yOffset)
+		p = Plotter(self.dim, self.goal, self.footsteps, self.numFootsteps, self.c1, self.r1, self.c2, self.r2)
 		if(self.hasNominal):
 			p.setNominal(self.nominal)
 		if(self.hasObstacleFree):

@@ -12,6 +12,8 @@ import numpy as np # numpy for matrix/vector manipulation
 # matplotlib for plotting footstep plans
 import matplotlib.pyplot as plt # pyplot
 from mpl_toolkits.mplot3d import Axes3D # 3D plotting
+import shapely.geometry as sg
+import descartes
 
 # ConvexHull
 from scipy.spatial import ConvexHull
@@ -20,14 +22,16 @@ np.set_printoptions(suppress=True)
 
 class Plotter:
 	totalFigures = 0
-	def __init__(self, dim, goal, footsteps, numFootsteps, reachable_chull, yOffset):
+	def __init__(self, dim, goal, footsteps, numFootsteps, c1, r1, c2, r2):
 		# ---- VALIDATE VARIABLES ----
 		assert(dim==2 or dim==3), "dim: must be either 2D or 3D; it is " + str(dim)
 		assert(isinstance(goal, np.ndarray) and goal.shape[0]==dim), "goal: must be an dim-dimension point in a numpy.array"
 		assert(isinstance(footsteps, np.ndarray) and footsteps.shape[1]==dim), "footsteps: must be a numpy.array of " + str(dim) + "-dimension points; instead footsteps.shape[1] = " + str(footsteps.shape[1])
 		assert(isinstance(numFootsteps, int) and numFootsteps<=footsteps.shape[0]), "numFootsteps: must be <= the total number of footsteps in footsteps"
-		assert(isinstance(reachable_chull, ConvexHull)), "reachable_chull must be a ConvexHull; instead: " + str(type(reachable_chull))
-		assert(isinstance(yOffset, float)), "yOffset must be a float; it is: " + str(type(yOffset))
+		assert(isinstance(c1, list) and len(c1)==dim), "c1 must be a list of length " + str(dim) + "; it is " + str(c1)
+		assert(isinstance(r1, float)), "r1 must be a float; it is " + str(r1)
+		assert(isinstance(c2, list) and len(c2)==dim), "c2 must be a list of length " + str(dim) + "; it is " + str(c2)
+		assert(isinstance(r2, float)), "r2 must be a float; it is " + str(r2)
 		self.upToDate = False
 
 		# Footstep variables
@@ -36,8 +40,10 @@ class Plotter:
 		self.footsteps = footsteps
 		self.numFootsteps = numFootsteps
 		# Convex Reachable Regions
-		self.reachable_chull = reachable_chull
-		self.yOffset = yOffset
+		self.c1 = c1
+		self.r1 = r1
+		self.c2 = c2
+		self.r2 = r2
 		self.hasNominal = False
 		self.nominalRatio = -1
 		# Convex Obstacle-Free Regions
@@ -86,20 +92,34 @@ class Plotter:
 				# RIGHT FOOTSTEP
 				plt.plot(*self.footsteps[2*i], color='green', marker='o') # footstep
 				plt.annotate("R"+str(i), xy=self.footsteps[2*i]) # annotation
-				for simplex in self.reachable_chull.simplices: # Region reachable from footstep
-					plt.plot(self.reachable_chull.points[simplex, 0] + self.footsteps[2*i][0], self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i][1]+self.yOffset), color='green', alpha=0.15)
+				# reachable region
+				rcircle1 = sg.Point(self.c1[0]+self.footsteps[2*i][0], self.c1[1]+self.footsteps[2*i][1]).buffer(self.r1)
+				rcircle2 = sg.Point(self.c2[0]+self.footsteps[2*i][0], self.c2[1]+self.footsteps[2*i][1]).buffer(self.r2)
+				rreachable = rcircle1.intersection(rcircle2)
+				ax = plt.gca()
+				ax.add_patch(descartes.PolygonPatch(rreachable, fc='g', ec='k', alpha=0.2))
+				# for simplex in self.reachable_chull.simplices: # Region reachable from footstep
+					# plt.plot(self.reachable_chull.points[simplex, 0] + self.footsteps[2*i][0], self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i][1]+self.yOffset), color='green', alpha=0.15)
 				if(self.hasNominal):	
-					for simplex in self.reachable_chull.simplices: # nominal region from footstep
-						plt.plot(self.nominalRatio*self.reachable_chull.points[simplex, 0] + self.footsteps[2*i][0], self.nominalRatio*self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i][1]+self.yOffset), color='green', alpha=0.3)
+					pass
+					# for simplex in self.reachable_chull.simplices: # nominal region from footstep
+						# plt.plot(self.nominalRatio*self.reachable_chull.points[simplex, 0] + self.footsteps[2*i][0], self.nominalRatio*self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i][1]+self.yOffset), color='green', alpha=0.3)
 
 				# LEFT FOOTSTEP
 				plt.plot(*self.footsteps[2*i+1], color='red', marker='o') # footstep
 				plt.annotate("L"+str(i), xy=self.footsteps[2*i+1]) # annotation
-				for simplex in self.reachable_chull.simplices: # Region reachable from footstep
-					plt.plot(self.reachable_chull.points[simplex, 0] + self.footsteps[2*i+1][0], self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i+1][1]-self.yOffset), color='red', alpha=0.75)
+				# reachable region
+				lcircle1 = sg.Point(*(self.c1+self.footsteps[2*i+1])).buffer(self.r1)
+				lcircle2 = sg.Point(*(self.c2+self.footsteps[2*i+1])).buffer(self.r2)
+				lreachable = lcircle1.intersection(lcircle2)
+				ax = plt.gca()
+				ax.add_patch(descartes.PolygonPatch(lreachable, fc='r', ec='k', alpha=0.2))
+				# for simplex in self.reachable_chull.simplices: # Region reachable from footstep
+					# plt.plot(self.reachable_chull.points[simplex, 0] + self.footsteps[2*i+1][0], self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i+1][1]-self.yOffset), color='red', alpha=0.75)
 				if(self.hasNominal):
-					for simplex in self.reachable_chull.simplices: # nominal region from footstep
-						plt.plot(self.nominalRatio*self.reachable_chull.points[simplex, 0] + self.footsteps[2*i+1][0], self.nominalRatio*self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i+1][1]-self.yOffset), color='red', alpha=0.75)
+					pass
+					# for simplex in self.reachable_chull.simplices: # nominal region from footstep
+						# plt.plot(self.nominalRatio*self.reachable_chull.points[simplex, 0] + self.footsteps[2*i+1][0], self.nominalRatio*self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i+1][1]-self.yOffset), color='red', alpha=0.75)
 
 			# plot obstacle free regions
 			if(self.has_open):

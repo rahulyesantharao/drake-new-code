@@ -18,15 +18,20 @@ import descartes
 # ConvexHull
 from scipy.spatial import ConvexHull
 
+import math
+
 np.set_printoptions(suppress=True)
 
 class Plotter:
 	totalFigures = 0
-	def __init__(self, dim, goal, footsteps, numFootsteps, c1, r1, c2, r2):
+	ARROW_LENGTH = 0.25
+	def __init__(self, dim, goal, footsteps, sinApprox, cosApprox, numFootsteps, c1, r1, c2, r2):
 		# ---- VALIDATE VARIABLES ----
 		assert(dim==2 or dim==3), "dim: must be either 2D or 3D; it is " + str(dim)
 		assert(isinstance(goal, np.ndarray) and goal.shape[0]==dim), "goal: must be an dim-dimension point in a numpy.array"
-		assert(isinstance(footsteps, np.ndarray) and footsteps.shape[1]==dim), "footsteps: must be a numpy.array of " + str(dim) + "-dimension points; instead footsteps.shape[1] = " + str(footsteps.shape[1])
+		assert(isinstance(footsteps, np.ndarray) and footsteps.shape[1]==dim+1), "footsteps: must be a numpy.array of " + str(dim)+1 + "-dimension points; instead footsteps.shape[1] = " + str(footsteps.shape[1])
+		assert(isinstance(sinApprox, np.ndarray) and sinApprox.shape[0] >= 2*numFootsteps), "sinApprox must be a numpy.array; instead, it is " + str(type(sinApprox)) + " with length " + str(sinApprox.shape[0])
+		assert(isinstance(cosApprox, np.ndarray) and cosApprox.shape[0] >= 2*numFootsteps), "cosApprox must be a numpy.array; instead, it is " + str(type(cosApprox)) + " with length " + str(cosApprox.shape[0])
 		assert(isinstance(numFootsteps, int) and numFootsteps<=footsteps.shape[0]), "numFootsteps: must be <= the total number of footsteps in footsteps"
 		assert(isinstance(c1, list) and len(c1)==dim), "c1 must be a list of length " + str(dim) + "; it is " + str(c1)
 		assert(isinstance(r1, float)), "r1 must be a float; it is " + str(r1)
@@ -38,6 +43,8 @@ class Plotter:
 		self.dim = dim
 		self.goal = goal
 		self.footsteps = footsteps
+		self.sinApprox = sinApprox
+		self.cosApprox = cosApprox
 		self.numFootsteps = numFootsteps
 		# Convex Reachable Regions
 		self.c1 = c1
@@ -90,11 +97,11 @@ class Plotter:
 				print("Left: " + str(self.footsteps[2*i+1]))
 				
 				# RIGHT FOOTSTEP
-				plt.plot(*self.footsteps[2*i], color='green', marker='o') # footstep
-				plt.annotate("R"+str(i), xy=self.footsteps[2*i]) # annotation
+				plt.plot([self.footsteps[2*i][0], self.footsteps[2*i][0]+Plotter.ARROW_LENGTH*math.cos(self.footsteps[2*i][2])],[self.footsteps[2*i][1], self.footsteps[2*i][1]+Plotter.ARROW_LENGTH*math.sin(self.footsteps[2*i][2])], color='green') # footstep
+				plt.annotate("R"+str(i), xy=[self.footsteps[2*i][0],self.footsteps[2*i][1]]) # annotation
 				# reachable region
-				rcircle1 = sg.Point(self.c1[0]+self.footsteps[2*i][0], self.c1[1]+self.footsteps[2*i][1]).buffer(self.r1)
-				rcircle2 = sg.Point(self.c2[0]+self.footsteps[2*i][0], self.c2[1]+self.footsteps[2*i][1]).buffer(self.r2)
+				rcircle1 = sg.Point(self.footsteps[2*i][0] + (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]), self.footsteps[2*i][1] + (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1])).buffer(self.r1)
+				rcircle2 = sg.Point(self.footsteps[2*i][0] + (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]), self.footsteps[2*i][1] + (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1])).buffer(self.r2)
 				rreachable = rcircle1.intersection(rcircle2)
 				ax = plt.gca()
 				ax.add_patch(descartes.PolygonPatch(rreachable, fc='g', ec='k', alpha=0.2))
@@ -106,11 +113,11 @@ class Plotter:
 						# plt.plot(self.nominalRatio*self.reachable_chull.points[simplex, 0] + self.footsteps[2*i][0], self.nominalRatio*self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i][1]+self.yOffset), color='green', alpha=0.3)
 
 				# LEFT FOOTSTEP
-				plt.plot(*self.footsteps[2*i+1], color='red', marker='o') # footstep
-				plt.annotate("L"+str(i), xy=self.footsteps[2*i+1]) # annotation
+				plt.plot([self.footsteps[2*i+1][0], self.footsteps[2*i+1][0]+Plotter.ARROW_LENGTH*math.cos(self.footsteps[2*i+1][2])],[self.footsteps[2*i+1][1], self.footsteps[2*i+1][1]+Plotter.ARROW_LENGTH*math.sin(self.footsteps[2*i+1][2])], color='red') # footstep
+				plt.annotate("L"+str(i), xy=[self.footsteps[2*i+1][0], self.footsteps[2*i+1][1]]) # annotation
 				# reachable region
-				lcircle1 = sg.Point(*(self.c1+self.footsteps[2*i+1])).buffer(self.r1)
-				lcircle2 = sg.Point(*(self.c2+self.footsteps[2*i+1])).buffer(self.r2)
+				lcircle1 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c1[0]-self.sinApprox[2*i+1]*self.c1[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c1[0]+self.cosApprox[2*i+1]*self.c1[1])).buffer(self.r1)
+				lcircle2 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c2[0]-self.sinApprox[2*i+1]*self.c2[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c2[0]+self.cosApprox[2*i+1]*self.c2[1])).buffer(self.r2)
 				lreachable = lcircle1.intersection(lcircle2)
 				ax = plt.gca()
 				ax.add_patch(descartes.PolygonPatch(lreachable, fc='r', ec='k', alpha=0.2))

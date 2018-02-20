@@ -2,8 +2,8 @@ from FootstepPlanner import FootstepPlanner
 
 if __name__ == '__main__':
 	f = FootstepPlanner(2)
-	f.setReachable([0,0.75], 1.5, [0,-0.75], 1.5)
-	f.setStart([0, 0])
+	f.setReachable([0,0.1], 2., [0,-3], 2.)
+	f.setStartRL([[0], [-1]], [[0],[1]])
 	f.setGoal([10, 10])
 	f.setNominal(0.5)
 
@@ -13,4 +13,4 @@ if __name__ == '__main__':
 
 	f.setObstacleFree(temp)
 	f.solveProgram()
-	f.showSolution(save=True)
+	f.showSolution(save=False)

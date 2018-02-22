@@ -2,7 +2,7 @@ from FootstepPlanner import FootstepPlanner
 
 if __name__ == '__main__':
 	f = FootstepPlanner(2)
-	f.setReachable([0,0.1], 2., [0,-3], 2.)
+	f.setReachable([0,0.5], 3.0, [0,-4.5], 3.0)
 	f.setStartRL([[0], [-1]], [[0],[1]])
 	f.setGoal([10, 10])
 	f.setNominal(0.5)
@@ -11,6 +11,6 @@ if __name__ == '__main__':
 	for j in range(1,5):
 		temp.append([(j+1.2, 2), (j+1.2, -2), (j+2.1, 2), (j+2.1, -2)])
 
-	f.setObstacleFree(temp)
+	# f.setObstacleFree(temp)
 	f.solveProgram()
 	f.showSolution(save=False)

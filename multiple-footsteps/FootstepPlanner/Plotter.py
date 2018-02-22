@@ -88,20 +88,23 @@ class Plotter:
 			plt.xlabel("X Displacement")
 			plt.ylabel("Y Displacement")
 
+			plt.gca().set_aspect('equal', adjustable='box')
+			
 			# plot goal
 			plt.plot(*self.goal, color='blue', marker='o')
 
 			# plot footsteps
-			for i in range(self.numFootsteps):
-				print("Right: " + str(self.footsteps[2*i]))
-				print("Left: " + str(self.footsteps[2*i+1]))
-				
+			for i in range(self.numFootsteps):				
 				# RIGHT FOOTSTEP
+				print("Right: " + str(self.footsteps[2*i]))
+				print("C1: (" + str(round(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]),2)) + ", "  + str(round(self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1]),2)) + ")")
+				print("C2: (" + str(round(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]),2)) + ", "  + str(round(self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1]),2)) + ")")
+
 				plt.plot([self.footsteps[2*i][0], self.footsteps[2*i][0]+Plotter.ARROW_LENGTH*math.cos(self.footsteps[2*i][2])],[self.footsteps[2*i][1], self.footsteps[2*i][1]+Plotter.ARROW_LENGTH*math.sin(self.footsteps[2*i][2])], color='green') # footstep
-				plt.annotate("R"+str(i), xy=[self.footsteps[2*i][0],self.footsteps[2*i][1]]) # annotation
+				plt.annotate("R"+str(i) + ": " + str(self.footsteps[2*i][2]*180/math.pi), xy=[self.footsteps[2*i][0],self.footsteps[2*i][1]]) # annotation
 				# reachable region
-				rcircle1 = sg.Point(self.footsteps[2*i][0] + (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]), self.footsteps[2*i][1] + (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1])).buffer(self.r1)
-				rcircle2 = sg.Point(self.footsteps[2*i][0] + (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]), self.footsteps[2*i][1] + (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1])).buffer(self.r2)
+				rcircle1 = sg.Point(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]), self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1])).buffer(self.r1)
+				rcircle2 = sg.Point(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]), self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1])).buffer(self.r2)
 				rreachable = rcircle1.intersection(rcircle2)
 				ax = plt.gca()
 				ax.add_patch(descartes.PolygonPatch(rreachable, fc='g', ec='k', alpha=0.2))
@@ -113,8 +116,12 @@ class Plotter:
 						# plt.plot(self.nominalRatio*self.reachable_chull.points[simplex, 0] + self.footsteps[2*i][0], self.nominalRatio*self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i][1]+self.yOffset), color='green', alpha=0.3)
 
 				# LEFT FOOTSTEP
+				print("Left: " + str(self.footsteps[2*i+1]))
+				print("C1: (" + str(round(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c1[0]-self.sinApprox[2*i+1]*self.c1[1]),2)) + ", "  + str(round(self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c1[0]+self.cosApprox[2*i+1]*self.c1[1]),2)) + ")")
+				print("C2: (" + str(round(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c2[0]-self.sinApprox[2*i+1]*self.c2[1]),2)) + ", "  + str(round(self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c2[0]+self.cosApprox[2*i+1]*self.c2[1]),2)) + ")")
+
 				plt.plot([self.footsteps[2*i+1][0], self.footsteps[2*i+1][0]+Plotter.ARROW_LENGTH*math.cos(self.footsteps[2*i+1][2])],[self.footsteps[2*i+1][1], self.footsteps[2*i+1][1]+Plotter.ARROW_LENGTH*math.sin(self.footsteps[2*i+1][2])], color='red') # footstep
-				plt.annotate("L"+str(i), xy=[self.footsteps[2*i+1][0], self.footsteps[2*i+1][1]]) # annotation
+				plt.annotate("L"+str(i) + ": " + str(self.footsteps[2*i+1][2]*180/math.pi), xy=[self.footsteps[2*i+1][0], self.footsteps[2*i+1][1]]) # annotation
 				# reachable region
 				lcircle1 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c1[0]-self.sinApprox[2*i+1]*self.c1[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c1[0]+self.cosApprox[2*i+1]*self.c1[1])).buffer(self.r1)
 				lcircle2 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c2[0]-self.sinApprox[2*i+1]*self.c2[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c2[0]+self.cosApprox[2*i+1]*self.c2[1])).buffer(self.r2)

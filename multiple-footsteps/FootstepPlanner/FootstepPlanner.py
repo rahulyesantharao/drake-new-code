@@ -19,7 +19,7 @@ import math
 np.set_printoptions(suppress=True)
 
 class FootstepPlanner:
-	MAXFOOTSTEPS = 3
+	MAXFOOTSTEPS = 8
 	NUM_LINEAR_PIECES = 5
 
 	# SINE PIECES: [0, 1) U [1, pi-1) U [pi-1, pi+1) U [pi+1, 2pi-1) U [2pi-1, 2pi)
@@ -177,17 +177,17 @@ class FootstepPlanner:
 			# prog.AddLinearConstraint(s[1] == 0)
 			# All other footsteps
 			for fNum in range(1, FootstepPlanner.MAXFOOTSTEPS):
-				# for i in range(self.reachableA.shape[0]):
-					# Constrain footsteps
-					# prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r1, f[2*fNum][0]-(f[2*fNum-1][0]+self.c1[0]), f[2*fNum][1]-(f[2*fNum-1][1]+self.c1[1])])) # Right Footstep (2*fNum) to previous left (2*fNum-1)
-					# prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r2, f[2*fNum][0]-(f[2*fNum-1][0]+self.c2[0]), f[2*fNum][1]-(f[2*fNum-1][1]+self.c2[1])])) #  by constraining it to be within the two circles
-					# prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r1, f[2*fNum+1][0]-(f[2*fNum][0]+self.c1[0]), f[2*fNum+1][1]-(f[2*fNum][1]+self.c1[1])])) # Left Footstep (2*fNum+1) to previous right (2*fNum)
-					# prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r2, f[2*fNum+1][0]-(f[2*fNum][0]+self.c2[0]), f[2*fNum+1][1]-(f[2*fNum][1]+self.c2[1])])) #  by constraining to be within the two circles
+					# Constrain angles (each left footstep can be within  (0, +pi/4) of previous right footstep; each right footstep can be within (0, -pi/4) of previous left footstep)
+					prog.AddLinearConstraint(f[2*fNum][2] <= f[2*fNum-1][2])
+					prog.AddLinearConstraint(f[2*fNum][2] >= f[2*fNum-1][2]-math.pi/4)
+					prog.AddLinearConstraint(f[2*fNum+1][2] >= f[2*fNum][2])
+					prog.AddLinearConstraint(f[2*fNum+1][2] <= f[2*fNum][2] + math.pi/4)
 
+					# Constrain XY positions
 					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r1, f[2*fNum][0]-(f[2*fNum-1][0]+(c[2*fNum-1]*self.c1[0]-s[2*fNum-1]*self.c1[1])), f[2*fNum][1]-(f[2*fNum-1][1]+(s[2*fNum-1]*self.c1[0]+c[2*fNum-1]*self.c1[1]))])) # Right Footstep (2*fNum) to previous left (2*fNum-1)
 					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r2, f[2*fNum][0]-(f[2*fNum-1][0]+(c[2*fNum-1]*self.c2[0]-s[2*fNum-1]*self.c2[1])), f[2*fNum][1]-(f[2*fNum-1][1]+(s[2*fNum-1]*self.c2[0]+c[2*fNum-1]*self.c2[1]))])) #  by constraining it to be within the two circles
-					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r1, f[2*fNum+1][0]-(f[2*fNum][0]+(c[2*fNum]*self.c1[0]-s[2*fNum]*self.c1[1])), f[2*fNum+1][1]-(f[2*fNum][1]+(s[2*fNum]*self.c1[0]+c[2*fNum]*self.c1[1]))])) # Left Footstep (2*fNum+1) to previous right (2*fNum)
-					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r2, f[2*fNum+1][0]-(f[2*fNum][0]+(c[2*fNum]*self.c2[0]-s[2*fNum]*self.c2[1])), f[2*fNum+1][1]-(f[2*fNum][1]+(s[2*fNum]*self.c2[0]+c[2*fNum]*self.c2[1]))])) #  by constraining to be within the two circles
+					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r1, f[2*fNum+1][0]-(f[2*fNum][0]-(c[2*fNum]*self.c1[0]-s[2*fNum]*self.c1[1])), f[2*fNum+1][1]-(f[2*fNum][1]-(s[2*fNum]*self.c1[0]+c[2*fNum]*self.c1[1]))])) # Left Footstep (2*fNum+1) to previous right (2*fNum)
+					prog.AddLorentzConeConstraint(np.array([0*f[2*fNum][0]+self.r2, f[2*fNum+1][0]-(f[2*fNum][0]-(c[2*fNum]*self.c2[0]-s[2*fNum]*self.c2[1])), f[2*fNum+1][1]-(f[2*fNum][1]-(s[2*fNum]*self.c2[0]+c[2*fNum]*self.c2[1]))])) #  by constraining to be within the two circles
 					if(self.hasNominal): # Nominal Regions
 						pass
 						# prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum][0]-f[2*fNum-1][0]) + self.reachableA[i][1]*(f[2*fNum][1]-(f[2*fNum-1][1]-self.yOffset)) + n[2*fNum]*M <= self.nominal*self.reachableb[i] + M) # Right Footstep (2*fNum) to previous left (2*fNum-1)
@@ -266,7 +266,7 @@ class FootstepPlanner:
 	def showSolution(self, save=False):
 		print(str(self.numFootsteps) + " Footsteps:")
 		for i in range(self.footsteps.shape[0]):
-			print(str(self.footsteps[i]) + "; (" + str(self.cosApprox[i]) + ", " + str(self.sinApprox[i]) + ")")
+			print("[" + str(self.footsteps[i][0]) + ", " + str(self.footsteps[i][1]) + ", " + str(((180/math.pi) * self.footsteps[i][2])) + "]; (" + str(self.cosApprox[i]) + ", " + str(self.sinApprox[i]) + ")")
 
 		if(not self.upToDate):
 			print("Solution not up to date; please run solve() to update the solution")

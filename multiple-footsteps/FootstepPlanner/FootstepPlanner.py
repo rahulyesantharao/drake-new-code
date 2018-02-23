@@ -19,7 +19,7 @@ import math
 np.set_printoptions(suppress=True)
 
 class FootstepPlanner:
-	MAXFOOTSTEPS = 8
+	MAXFOOTSTEPS = 10
 	NUM_LINEAR_PIECES = 5
 
 	# SINE PIECES: [0, 1) U [1, pi-1) U [pi-1, pi+1) U [pi+1, 2pi-1) U [2pi-1, 2pi)

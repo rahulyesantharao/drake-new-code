@@ -45,7 +45,7 @@ if __name__== "__main__":
 	startstate.pose.translation.y = START_POS[1]
 	request.initial_state = startstate
 
-	lc.publish("REQUEST", request.encode())
+	# lc.publish("REQUEST", request.encode())
 
 	# Listen for response with footstep_plan_t
 	try:

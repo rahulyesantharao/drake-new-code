@@ -2,9 +2,11 @@ from FootstepPlanner import FootstepPlanner
 
 if __name__ == '__main__':
 	f = FootstepPlanner(2)
-	f.setReachable([0,0.5], 3.0, [0,-4.5], 3.0)
-	f.setStartRL([[0], [-1]], [[0],[1]])
-	f.setGoal([10, 10])
+	# f.setReachable([0,0.5], 3.0, [0,-4.5], 3.0)
+	# f.setStartRL([[0], [-1]], [[0],[1]])
+	f.setReachable([0,0], 0.5, [0,-0.6], 0.5)
+	f.setStartRL([[0], [-0.15]], [[0],[0.15]])
+	f.setGoal([1.5, 0])
 	f.setNominal(0.5)
 
 	temp = [[(0,2),(0,-2),(1,2),(1,-2)]]

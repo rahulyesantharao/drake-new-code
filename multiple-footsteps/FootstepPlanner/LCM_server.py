@@ -11,6 +11,7 @@ from pydrake.parsers import PackageMap
 from pydrake import rbtree
 from pydrake import getDrakePath
 
+import math
 import numpy as np
 
 if __name__== "__main__":
@@ -49,7 +50,7 @@ if __name__== "__main__":
 
 		f.setStartRL(r_startpos, l_startpos)
 		f.setGoal([request.goal_pos.translation.x, request.goal_pos.translation.y])
-		f.setReachable([(0,-0.2), (0.5,0), (0,0.2), (-0.3,0)], 0.3)
+		f.setReachable([0,0], 0.5, [0,-0.6], 0.5)
 		# f.setNominal(0.5)
 		f.solveProgram()
 		
@@ -61,7 +62,8 @@ if __name__== "__main__":
 		for fNum in range(0, f.numFootsteps):
 			# -- Right Footstep
 			rstep = drc.footstep_t()
-			rstep.pos.rotation.w = 1
+			rstep.pos.rotation.w = math.cos(f.footsteps[2*fNum][2]*0.5)
+			rstep.pos.rotation.z = math.sin(f.footsteps[2*fNum][2]*0.5)
 			rspos = np.array([[f.footsteps[2*fNum][0]], [f.footsteps[2*fNum][1]], [0]])
 			# rs = np.array([f.footsteps[2*fNum][0], f.footsteps[2*fNum][1], 0])
 			rs = robot.transformPoints(kinsol, rspos, robot.FindBody("r_foot").get_body_index(), robot.findFrame("r_foot_sole").get_frame_index())
@@ -76,7 +78,8 @@ if __name__== "__main__":
 			plan.footsteps.append(rstep)
 			# -- Left Footstep
 			lstep = drc.footstep_t()
-			lstep.pos.rotation.w = 1
+			lstep.pos.rotation.w = math.cos(f.footsteps[2*fNum+1][2]*0.5)
+			lstep.pos.rotation.z = math.sin(f.footsteps[2*fNum+1][2]*0.5)
 			lspos = np.array([[f.footsteps[2*fNum+1][0]], [f.footsteps[2*fNum+1][1]], [0]])
 			# ls = np.array([f.footsteps[2*fNum+1][0], f.footsteps[2*fNum+1][1], 0])
 			ls = robot.transformPoints(kinsol, lspos, robot.FindBody("l_foot").get_body_index(), robot.findFrame("l_foot_sole").get_frame_index())

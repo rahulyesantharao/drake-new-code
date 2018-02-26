@@ -7,7 +7,7 @@ if __name__ == '__main__':
 	f.setReachable([0,0], 0.5, [0,-0.6], 0.5)
 	f.setStartRL([[0], [-0.15]], [[0],[0.15]])
 	f.setGoal([1.5, 0])
-	f.setNominal(0.5)
+	# f.setNominal(0.5)
 
 	temp = [[(0,2),(0,-2),(1,2),(1,-2)]]
 	for j in range(1,5):

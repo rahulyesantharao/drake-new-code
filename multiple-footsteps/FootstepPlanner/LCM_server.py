@@ -53,13 +53,14 @@ if __name__== "__main__":
 		f.setReachable([0,0], 0.5, [0,-0.6], 0.5)
 		# f.setNominal(0.5)
 		f.solveProgram()
-		
+		f.showSolution(save=False)
 		# Package solution into footstep_plan_t
 		plan = drc.footstep_plan_t()
 
 		# - Footsteps
 		plan.num_steps = 2*f.numFootsteps
 		for fNum in range(0, f.numFootsteps):
+			print("-----------" + str(fNum) + "-----------")
 			# -- Right Footstep
 			rstep = drc.footstep_t()
 			rstep.pos.rotation.w = math.cos(f.footsteps[2*fNum][2]*0.5)
@@ -68,6 +69,7 @@ if __name__== "__main__":
 			# rs = np.array([f.footsteps[2*fNum][0], f.footsteps[2*fNum][1], 0])
 			rs = robot.transformPoints(kinsol, rspos, robot.FindBody("r_foot").get_body_index(), robot.findFrame("r_foot_sole").get_frame_index())
 			print("Right: " + str(rs))
+			print("Right Angle: " + str((180/math.pi) * f.footsteps[2*fNum][2]))
 			rstep.pos.translation.x = rs[0]
 			rstep.pos.translation.y = rs[1]
 			rstep.pos.translation.z = rs[2]
@@ -84,6 +86,7 @@ if __name__== "__main__":
 			# ls = np.array([f.footsteps[2*fNum+1][0], f.footsteps[2*fNum+1][1], 0])
 			ls = robot.transformPoints(kinsol, lspos, robot.FindBody("l_foot").get_body_index(), robot.findFrame("l_foot_sole").get_frame_index())
 			print("Left: "  + str(ls))
+			print("Left Angle: " + str((180/math.pi) * f.footsteps[2*fNum+1][2]))
 			lstep.pos.translation.x = ls[0]
 			lstep.pos.translation.y = ls[1]
 			lstep.pos.translation.z = ls[2]

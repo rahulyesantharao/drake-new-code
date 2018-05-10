@@ -13,6 +13,9 @@ from scipy.spatial import ConvexHull
 # Plotter
 from Plotter import Plotter
 
+# Julia
+import julia
+
 import math
 
 # Make numpy round printed values
@@ -47,6 +50,7 @@ class FootstepPlanner:
 		self.startR = None
 		self.numFootsteps = -1
 		self.upToDate = True
+		self.approxSol = True # set to true after SolveProgram is called; False after SolveProgram_Counne: only used so that it isn't called twice on the same parameters
 		# Convex reachable regions based on previous footstep
 		self.c1 = None
 		self.c2 = None
@@ -60,6 +64,10 @@ class FootstepPlanner:
 		self.oChulls = None
 		self.oA = None
 		self.ob = None
+
+		# ADD JULIA OBJECT
+		self.j = julia.Julia()
+		j._call('using JuMP, AmplNLWriter')
 
 	# The reachable region is defined by two circles, given by their centers and radii
 	def setReachable(self, center1, radius1, center2, radius2):
@@ -262,6 +270,96 @@ class FootstepPlanner:
 			self.cosApprox = prog.GetSolution(c)
 			self.footsteps = np.array(self.footsteps)
 			self.upToDate = True
+			self.approxSol = True
+
+	def solveProgram_Couenne(self):
+		if(not self.upToDate or self.approxSol):
+			j._call('m = Model(solver=AmplNLSolver(/home/rahuly/Data/Couenne-0.5.6/build/bin/couenne))')
+			M = 100
+			
+			# SET UP FOOTSTEP VARIABLES
+			j._call('@variable(m, f[1:{},1:{}])'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.dim+1)) # Create footstep variable array
+			j._call('@constraint(m, [i=1:{}], f[i,{}] <= 2*pi)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.dim+1)) # Angular
+			j._call('@constraint(m, [i=1:{}], f[i,{}] >= 0)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.dim+1))	 #  Constraints
+			
+			# CONSTRAIN WITH REACHABLE REGIONS
+			# Starting Footsteps
+			#  - Starting Right Footstep
+			j._call('@constraint(m, f[1,1] == {})'.format(self.startR[0]))
+			j._call('@constraint(m, f[1,2] == {})'.format(self.startR[1]))
+			j._call('@constraint(m, f[1,3] == {})'.format(0))
+			#  - Starting Left Footstep
+			j._call('@constraint(m, f[2,1] == {})'.format(self.startL[0]))
+			j._call('@constraint(m, f[2,2] == {})'.format(self.startL[1]))
+			j._call('@constraint(m, f[2,3] == {})'.format(0))
+			# All other footsteps
+			#  - Angular Constraints
+			j._call('@constraint(m, [i=3:{}; isodd(i)], f[i,2] <= f[i-1,2])'.format(2*FootstepPlanner.MAXFOOTSTEPS)) 	 # right footstep within 
+			j._call('@constraint(m, [i=3:{}; isodd(i)], f[i,2] >= f[i-1,2]-pi/4)'.format(2*FootstepPlanner.MAXFOOTSTEPS)) #  (0, -pi/4) of prev left footstep
+			j._call('@constraint(m, [i=3:{}; iseven(i)], f[i,2] >= f[i-1,2])'.format(2*FootstepPlanner.MAXFOOTSTEPS)) 	 # left footstep within
+			j._call('@constraint(m, [i=3:{}; iseven(i)], f[i,2] <= f[i-1,2]+pi/4)'.format(2*FootstepPlanner.MAXFOOTSTEPS)) #  (0, +pi/4) of prev right footstep
+			#  - Reachable Region Constraints
+			j._call('@NLconstraint(m, [i=3:{}; isodd(i)], (f[i,1]-(f[i-1,1]+(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]+(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c1[0], self.c1[1], self.c1[0], self.c1[1], self.r1)) # Right Footstep (odd) to previous left: c1
+			j._call('@NLconstraint(m, [i=3:{}; isodd(i)], (f[i,1]-(f[i-1,1]+(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]+(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c2[0], self.c2[1], self.c2[0], self.c2[1], self.r2)) # Right Footstep (odd) to previous left: c2
+			j._call('@NLconstraint(m, [i=3:{}; iseven(i)], (f[i,1]-(f[i-1,1]-(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]-(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c1[0], self.c1[1], self.c1[0], self.c1[1], self.r1)) # Left Footstep (odd) to previous right: c1
+			j._call('@BLconstraint(m, [i=3:{}; iseven(i)], (f[i,1]-(f[i-1,1]-(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]-(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c2[0], self.c2[1], self.c2[0], self.c2[1], self.r2)) # Left Footstep (odd) to previous right: c2
+
+			if(self.hasNominal): # Nominal Regions
+				j._call('@variable(m, n[1:{}], Bin)'.format(2*FootstepPlanner.MAXFOOTSTEPS)) # binary variables for nominal regions						
+				# prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum][0]-f[2*fNum-1][0]) + self.reachableA[i][1]*(f[2*fNum][1]-(f[2*fNum-1][1]-self.yOffset)) + n[2*fNum]*M <= self.nominal*self.reachableb[i] + M) # Right Footstep (2*fNum) to previous left (2*fNum-1)
+				# prog.AddLinearConstraint(self.reachableA[i][0]*(f[2*fNum+1][0]-f[2*fNum][0]) + self.reachableA[i][1]*(f[2*fNum+1][1]-(f[2*fNum][1]+self.yOffset)) + n[2*fNum+1]*M <= self.nominal*self.reachableb[i] + M) # Left Footstep (2*fNum+1) to previous right (2*fNum)
+
+			# CONSTRAIN TO OBSTACLE FREE REGIONS
+			if(self.hasObstacleFree):
+				j._call('@variable(m, h[1:{},1:{}], Bin)'.format(2*FootstepPlanner.MAXFOOTSTEPS-2, self.num_regions)) # Create Binary indicator variables for each step after starting steps
+				j._call('@constraint(m, [i=1:{}], sum(h[i,:])==1)'.format(2*FootstepPlanner.MAXFOOTSTEPS-2)) # Constraint each footstep to one region
+				
+				j._call('@constraint(m, [i=1:self.num_regions, j=1:])')
+
+				# Constrain the footsteps to the regions
+				for i in range(self.num_regions):
+					for j in range(self.oA[i].shape[0]):
+						j._call('@constraint(m, [i=3:{}], {}*f[i,1]+{}*f[i,2]+{}*h[i,{}] <= {} + {})'.format(2*FootstepPlanner.MAXFOOTSTEPS-2, self.oA[i][j][0], self.oA[i][j][1], M, i+1, self.ob[i][j]),M)
+
+			# OPTIMAL NUMBER OF FOOTSTEPS
+			j._call('@variable(m, z[1:{}], Bin)'.format(FootstepPlanner.MAXFOOTSTEPS))
+			j._call('@constraint(m, [i=1:{}], z[i] <= z[i+1]'.format(FootstepPlanner.MAXFOOTSTEPS-1))
+			j._call('@constraint(m, z[{}]-z[1]==1'.format(FootstepPlanner.MAXFOOTSTEPS))
+
+			# if z[i], then the ith footstep is the same as the final footstep
+			j._call('@constraint(m, [i=1:{}, j=1:2; isodd(i)], f[i,j]+{}*z[(i+1)/2] <= f[{},j]+{}'.format(2*FootstepPlanner.MAXFOOTSTEPS, M, 2*FootstepPlanner.MAXFOOTSTEPS-1, M))
+			j._call('@constraint(m, [i=1:{}, j=1:2; isodd(i)], -f[i,j]+{}*z[(i+1)/2] <= -f[{},j]+{}'.format(2*FootstepPlanner.MAXFOOTSTEPS, M, 2*FootstepPlanner.MAXFOOTSTEPS-1, M))
+			j._call('@constraint(m, [i=1:{}, j=1:2; iseven(i)], f[i,j]+{}*z[i/2] <= f[{},j]+{}'.format(2*FootstepPlanner.MAXFOOTSTEPS, M, 2*FootstepPlanner.MAXFOOTSTEPS, M))
+			j._call('@constraint(m, [i=1:{}, j=1:2; iseven(i)], -f[i,j]+{}*z[i/2] <= -f[{},j]+{}'.format(2*FootstepPlanner.MAXFOOTSTEPS, M, 2*FootstepPlanner.MAXFOOTSTEPS, M))
+
+			# ADD COSTS
+			# Cost of consecutive footsteps (with nominal regions considered)
+			j._call('@objective(m, Min, [i=1:{}], (f[i,1]-f[i+1,1])^2+(f[i,2]-f[i+1,2])^2+2*(1-n[i]))'.format(2*FootstepPlanner.MAXFOOTSTEPS-1))
+
+			# Cost of number of footsteps
+			j._call('@objective(m, Max, 5*sum(z))')
+
+			# Cost of distance of final position to goal
+			j._call('@objective(m, Min, [i={}:{}], 1000*((f[i,1]-{})^2+(f[i,2]-{})^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS-1, 2*FootstepPlanner.MAXFOOTSTEPS, self.goal[0], self.goal[1]))
+
+			# SOLVE PROBLEM
+			status = j.eval('solve(m)')
+			print('Solve Status: {}'.format(status))
+
+			# SAVE SOLUTION
+			self.footsteps = j.eval('getvalue(f)')
+			print(type(self.footsteps))
+			z = j.eval('getvalue(z)')
+			self.numFootsteps = 0
+			for i in range(len(z)):
+				self.numFootsteps +=1 
+				if(z[i]==1):
+					break
+			self.footsteps = self.footsteps[:self.numFootsteps] # Cut redundant footsteps TODO: FIX THIS
+			# self.footsteps = np.array(self.footsteps)
+
+			self.upToDate = True
+			self.approxSol = False
 
 	def showSolution(self, save=False):
 		print(str(self.numFootsteps) + " Footsteps:")

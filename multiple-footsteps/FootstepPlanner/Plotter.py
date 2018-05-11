@@ -25,7 +25,8 @@ np.set_printoptions(suppress=True)
 class Plotter:
 	totalFigures = 0
 	ARROW_LENGTH = 0.25
-	def __init__(self, dim, goal, footsteps, sinApprox, cosApprox, numFootsteps, c1, r1, c2, r2):
+	VALID_RRTYPES = ['NONE', 'CIRCLE', 'DIAMOND'] # Valid Reachable Region Types
+	def __init__(self, dim, goal, footsteps, sinApprox, cosApprox, numFootsteps):
 		# ---- VALIDATE VARIABLES ----
 		assert(dim==2 or dim==3), "dim: must be either 2D or 3D; it is " + str(dim)
 		assert(isinstance(goal, np.ndarray) and goal.shape[0]==dim), "goal: must be an dim-dimension point in a numpy.array"
@@ -33,10 +34,6 @@ class Plotter:
 		assert(isinstance(sinApprox, np.ndarray) and sinApprox.shape[0] >= 2*numFootsteps), "sinApprox must be a numpy.array; instead, it is " + str(type(sinApprox)) + " with length " + str(sinApprox.shape[0])
 		assert(isinstance(cosApprox, np.ndarray) and cosApprox.shape[0] >= 2*numFootsteps), "cosApprox must be a numpy.array; instead, it is " + str(type(cosApprox)) + " with length " + str(cosApprox.shape[0])
 		assert(isinstance(numFootsteps, int) and numFootsteps<=footsteps.shape[0]), "numFootsteps: must be <= the total number of footsteps in footsteps"
-		assert(isinstance(c1, list) and len(c1)==dim), "c1 must be a list of length " + str(dim) + "; it is " + str(c1)
-		assert(isinstance(r1, float)), "r1 must be a float; it is " + str(r1)
-		assert(isinstance(c2, list) and len(c2)==dim), "c2 must be a list of length " + str(dim) + "; it is " + str(c2)
-		assert(isinstance(r2, float)), "r2 must be a float; it is " + str(r2)
 		self.upToDate = False
 
 		# Footstep variables
@@ -46,20 +43,49 @@ class Plotter:
 		self.sinApprox = sinApprox
 		self.cosApprox = cosApprox
 		self.numFootsteps = numFootsteps
+
 		# Convex Reachable Regions
-		self.c1 = c1
-		self.r1 = r1
-		self.c2 = c2
-		self.r2 = r2
-		self.hasNominal = False
+		self.rrtype = 'NONE'
+		self.c1 = None # Circles
+		self.r1 = -1
+		self.c2 = None
+		self.r2 = -1
+		self.reachable_chull = None # Diamonds
+		self.offset = -1
+		self.hasNominal = False # Nominal Regions
 		self.nominalRatio = -1
+
 		# Convex Obstacle-Free Regions
 		self.has_open = False # boolean whether the plotter should show obstacle-free regions
 		self.open_chulls = None
 		self.num_open_regions = -1
+		
 		# Set Figure Number
 		Plotter.totalFigures+=1
 		self.figNum = Plotter.totalFigures
+
+	def setType(self, rrtype):
+		assert(rrtype in Plotter.VALID_RRTYPES), "rrtype must be one of " + str(VALID_RRTYPES)
+		self.rrtype = rrtype
+		self.upToDate = False
+
+	def setReachableDiamonds(self, reachable_chull, offset):
+		assert(isinstance(reachable_chull, ConvexHull)), "reachable_chull must be a ConvexHull; instead: " + str(type(reachable_chull))
+		assert(isinstance(offset, float)), "yOffset must be a float; it is: " + str(type(offset))
+		self.reachable_chull = reachable_chull
+		self.offset = offset
+		self.upToDate = False
+
+	def setReachableCircles(self, c1, r1, c2, r2):
+		assert(isinstance(c1, list) and len(c1)==self.dim), "c1 must be a list of length " + str(dim) + "; it is " + str(c1)
+		assert(isinstance(r1, float)), "r1 must be a float; it is " + str(r1)
+		assert(isinstance(c2, list) and len(c2)==self.dim), "c2 must be a list of length " + str(dim) + "; it is " + str(c2)
+		assert(isinstance(r2, float)), "r2 must be a float; it is " + str(r2)
+		self.c1 = c1
+		self.r1 = r1
+		self.c2 = c2
+		self.r2 = r2
+		self.upToDate = False
 
 	def setObstacleFree(self, regions):
 		assert(isinstance(regions, list)), "regions must be a list of ConvexHulls; it is " + str(type(regions))
@@ -97,19 +123,23 @@ class Plotter:
 			for i in range(self.numFootsteps):				
 				# RIGHT FOOTSTEP
 				print("Right: " + str(self.footsteps[2*i]))
-				print("C1: (" + str(round(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]),2)) + ", "  + str(round(self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1]),2)) + ")")
-				print("C2: (" + str(round(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]),2)) + ", "  + str(round(self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1]),2)) + ")")
 
 				plt.plot([self.footsteps[2*i][0], self.footsteps[2*i][0]+Plotter.ARROW_LENGTH*math.cos(self.footsteps[2*i][2])],[self.footsteps[2*i][1], self.footsteps[2*i][1]+Plotter.ARROW_LENGTH*math.sin(self.footsteps[2*i][2])], color='green') # footstep
 				plt.annotate("R"+str(i) + ": " + str(round(self.footsteps[2*i][2]*180/math.pi,2)), xy=[self.footsteps[2*i][0],self.footsteps[2*i][1]]) # annotation
-				# reachable region
-				rcircle1 = sg.Point(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]), self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1])).buffer(self.r1)
-				rcircle2 = sg.Point(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]), self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1])).buffer(self.r2)
-				rreachable = rcircle1.intersection(rcircle2)
-				ax = plt.gca()
-				ax.add_patch(descartes.PolygonPatch(rreachable, fc='g', ec='k', alpha=0.2))
-				# for simplex in self.reachable_chull.simplices: # Region reachable from footstep
-					# plt.plot(self.reachable_chull.points[simplex, 0] + self.footsteps[2*i][0], self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i][1]+self.yOffset), color='green', alpha=0.15)
+				
+				# Reachable Region
+				if(self.rrtype == 'CIRCLE'):
+					print("C1: (" + str(round(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]),2)) + ", "  + str(round(self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1]),2)) + ")")
+					print("C2: (" + str(round(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]),2)) + ", "  + str(round(self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1]),2)) + ")")
+					rcircle1 = sg.Point(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c1[0]-self.sinApprox[2*i]*self.c1[1]), self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c1[0]+self.cosApprox[2*i]*self.c1[1])).buffer(self.r1)
+					rcircle2 = sg.Point(self.footsteps[2*i][0] - (self.cosApprox[2*i]*self.c2[0]-self.sinApprox[2*i]*self.c2[1]), self.footsteps[2*i][1] - (self.sinApprox[2*i]*self.c2[0]+self.cosApprox[2*i]*self.c2[1])).buffer(self.r2)
+					rreachable = rcircle1.intersection(rcircle2)
+					ax = plt.gca()
+					ax.add_patch(descartes.PolygonPatch(rreachable, fc='g', ec='k', alpha=0.2))
+				elif(self.rrtype == 'DIAMOND'):
+					for simplex in self.reachable_chull.simplices: # Region reachable from footstep
+						plt.plot(self.cosApprox[2*i]*self.reachable_chull.points[simplex, 0]-self.sinApprox[2*i]*(self.reachable_chull.points[simplex, 1]+self.offset) + self.footsteps[2*i][0], self.sinApprox[2*i]*self.reachable_chull.points[simplex, 0] +self.cosApprox[2*i]*(self.reachable_chull.points[simplex, 1]+self.offset) + self.footsteps[2*i][1], color='green', alpha=0.15)
+				
 				if(self.hasNominal):	
 					pass
 					# for simplex in self.reachable_chull.simplices: # nominal region from footstep
@@ -117,19 +147,23 @@ class Plotter:
 
 				# LEFT FOOTSTEP
 				print("Left: " + str(self.footsteps[2*i+1]))
-				print("C1: (" + str(round(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c1[0]-self.sinApprox[2*i+1]*self.c1[1]),2)) + ", "  + str(round(self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c1[0]+self.cosApprox[2*i+1]*self.c1[1]),2)) + ")")
-				print("C2: (" + str(round(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c2[0]-self.sinApprox[2*i+1]*self.c2[1]),2)) + ", "  + str(round(self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c2[0]+self.cosApprox[2*i+1]*self.c2[1]),2)) + ")")
+				
 
 				plt.plot([self.footsteps[2*i+1][0], self.footsteps[2*i+1][0]+Plotter.ARROW_LENGTH*math.cos(self.footsteps[2*i+1][2])],[self.footsteps[2*i+1][1], self.footsteps[2*i+1][1]+Plotter.ARROW_LENGTH*math.sin(self.footsteps[2*i+1][2])], color='red') # footstep
 				plt.annotate("L"+str(i) + ": " + str(round(self.footsteps[2*i+1][2]*180/math.pi,2)), xy=[self.footsteps[2*i+1][0], self.footsteps[2*i+1][1]]) # annotation
-				# reachable region
-				lcircle1 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c1[0]-self.sinApprox[2*i+1]*self.c1[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c1[0]+self.cosApprox[2*i+1]*self.c1[1])).buffer(self.r1)
-				lcircle2 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c2[0]-self.sinApprox[2*i+1]*self.c2[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c2[0]+self.cosApprox[2*i+1]*self.c2[1])).buffer(self.r2)
-				lreachable = lcircle1.intersection(lcircle2)
-				ax = plt.gca()
-				ax.add_patch(descartes.PolygonPatch(lreachable, fc='r', ec='k', alpha=0.2))
-				# for simplex in self.reachable_chull.simplices: # Region reachable from footstep
-					# plt.plot(self.reachable_chull.points[simplex, 0] + self.footsteps[2*i+1][0], self.reachable_chull.points[simplex, 1] + (self.footsteps[2*i+1][1]-self.yOffset), color='red', alpha=0.75)
+				
+				# Reachable Region
+				if(self.rrtype == 'CIRCLE'):
+					print("C1: (" + str(round(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c1[0]-self.sinApprox[2*i+1]*self.c1[1]),2)) + ", "  + str(round(self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c1[0]+self.cosApprox[2*i+1]*self.c1[1]),2)) + ")")
+					print("C2: (" + str(round(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c2[0]-self.sinApprox[2*i+1]*self.c2[1]),2)) + ", "  + str(round(self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c2[0]+self.cosApprox[2*i+1]*self.c2[1]),2)) + ")")
+					lcircle1 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c1[0]-self.sinApprox[2*i+1]*self.c1[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c1[0]+self.cosApprox[2*i+1]*self.c1[1])).buffer(self.r1)
+					lcircle2 = sg.Point(self.footsteps[2*i+1][0] + (self.cosApprox[2*i+1]*self.c2[0]-self.sinApprox[2*i+1]*self.c2[1]), self.footsteps[2*i+1][1] + (self.sinApprox[2*i+1]*self.c2[0]+self.cosApprox[2*i+1]*self.c2[1])).buffer(self.r2)
+					lreachable = lcircle1.intersection(lcircle2)
+					ax = plt.gca()
+					ax.add_patch(descartes.PolygonPatch(lreachable, fc='r', ec='k', alpha=0.2))
+				elif(self.rrtype == 'DIAMOND'):
+					for simplex in self.reachable_chull.simplices: # Region reachable from footstep
+						plt.plot(self.cosApprox[2*i+1]*self.reachable_chull.points[simplex, 0]-self.sinApprox[2*i+1]*(self.reachable_chull.points[simplex, 1]-self.offset) + self.footsteps[2*i+1][0], self.sinApprox[2*i+1]*self.reachable_chull.points[simplex, 0] +self.cosApprox[2*i+1]*(self.reachable_chull.points[simplex, 1]-self.offset) + self.footsteps[2*i+1][1], color='red', alpha=0.15)
 				if(self.hasNominal):
 					pass
 					# for simplex in self.reachable_chull.simplices: # nominal region from footstep

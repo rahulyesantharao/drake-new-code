@@ -6,6 +6,7 @@ if __name__ == '__main__':
 	# f.setReachable([0,0.5], 3.0, [0,-4.5], 3.0)
 	# f.setStartRL([[0], [-1]], [[0],[1]])
 	f.setReachableCircles([0,0], 0.5, [0,-0.6], 0.5)
+	f.setReachableDiamonds([(0,-0.15), (0.30,0), (0,0.15), (-0.30,0)], 0.30)
 	f.setStartRL([[0], [-0.15]], [[0],[0.15]])
 	f.setGoal([1.5, 1.2])
 	# f.setNominal(0.5)
@@ -24,4 +25,4 @@ if __name__ == '__main__':
 			raise ValueError("Usage: python test.py couenne-<diamond/circle>")
 	else:
 		f.solveProgram()
-	f.showSolution(save=False)
+	f.showSolution(save=True)

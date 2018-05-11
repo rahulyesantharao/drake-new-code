@@ -22,7 +22,7 @@ import math
 np.set_printoptions(suppress=True)
 
 class FootstepPlanner:
-	MAXFOOTSTEPS = 3
+	MAXFOOTSTEPS = 4
 	NUM_LINEAR_PIECES = 5
 
 	# SINE PIECES: [0, 1) U [1, pi-1) U [pi-1, pi+1) U [pi+1, 2pi-1) U [2pi-1, 2pi)
@@ -75,7 +75,7 @@ class FootstepPlanner:
 		self.j._call('using JuMP, AmplNLWriter')
 
 	# Indicate that the solution is out of date
-	def setOutOfDate():
+	def setOutOfDate(self):
 		self.solType = -1
 
 	# The reachable region is defined by two circles, given by their centers and radii
@@ -88,8 +88,8 @@ class FootstepPlanner:
 		self.r2 = radius2
 		self.setOutOfDate()
 
-	# The reachable region is defined by a convex hull at a given offset from the point (left of the right foot, right of the left foot)
-	def setReachableDiamond(self, pointSet, offset):
+	# The reachable region is defined by a convex hull * centered at origin * at a given offset from the point (left of the right foot, right of the left foot)
+	def setReachableDiamonds(self, pointSet, offset):
 		assert(isinstance(pointSet, list)), "pointSet needs to be a list of points; instead it is " + str(type(pointSet))
 		assert(isinstance(offset, float)), "offset needs to be a float; instead it is " + str(type(yOffset))
 		self.reachableChull = ConvexHull(np.array(pointSet))
@@ -422,11 +422,11 @@ class FootstepPlanner:
 			self.j._call('@constraint(m, [i=3:{}; isodd(i)], f[i,3] >= f[i-1,3]-pi/4)'.format(2*FootstepPlanner.MAXFOOTSTEPS)) #  (0, -pi/4) of prev left footstep
 			self.j._call('@constraint(m, [i=3:{}; iseven(i)], f[i,3] >= f[i-1,3])'.format(2*FootstepPlanner.MAXFOOTSTEPS)) 	 # left footstep within
 			self.j._call('@constraint(m, [i=3:{}; iseven(i)], f[i,3] <= f[i-1,3]+pi/4)'.format(2*FootstepPlanner.MAXFOOTSTEPS)) #  (0, +pi/4) of prev right footstep
+			
 			#  - Reachable Region Constraints
-			self.j._call('@NLconstraint(m, [i=3:{}; isodd(i)], (f[i,1]-(f[i-1,1]+(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]+(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c1[0], self.c1[1], self.c1[0], self.c1[1], self.r1)) # Right Footstep (odd) to previous left: c1
-			self.j._call('@NLconstraint(m, [i=3:{}; isodd(i)], (f[i,1]-(f[i-1,1]+(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]+(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c2[0], self.c2[1], self.c2[0], self.c2[1], self.r2)) # Right Footstep (odd) to previous left: c2
-			self.j._call('@NLconstraint(m, [i=3:{}; iseven(i)], (f[i,1]-(f[i-1,1]-(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]-(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c1[0], self.c1[1], self.c1[0], self.c1[1], self.r1)) # Left Footstep (odd) to previous right: c1
-			self.j._call('@NLconstraint(m, [i=3:{}; iseven(i)], (f[i,1]-(f[i-1,1]-(cos(f[i-1,3])*{}-sin(f[i-1,3])*{})))^2 + (f[i,2]-(f[i-1,2]-(sin(f[i-1,3])*{}+cos(f[i-1,3])*{})))^2 <= {}^2)'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.c2[0], self.c2[1], self.c2[0], self.c2[1], self.r2)) # Left Footstep (odd) to previous right: c2
+			for i in range(self.reachableA.shape[0]): # constraint each footstep to each piece of the reachable region
+				# ([{} {}] * ([cos(f[i,3]) sin(f[i,3]); -sin(f[i,3]) cos(f[i,3])] * ([f[i,1];f[i,2]]-[f[i-1,1],f[i-1,2]]) - [0; (-1)^i*{}]))[1] <= {}
+				self.j._call('@NLconstraint(m, [i=3:{}], {}*(cos(f[i-1,3])*(f[i,1]-f[i-1,1])+sin(f[i-1,3])*(f[i,2]-f[i-1,2])) + {}*(-sin(f[i-1,3])*(f[i,1]-f[i-1,1])+cos(f[i-1,3])*(f[i,2]-f[i-1,2])-(-1)^i*{}) <= {})'.format(2*FootstepPlanner.MAXFOOTSTEPS, self.reachableA[i][0], self.reachableA[i][1], self.offset, self.reachableb[i]))
 
 			self.j._call('@variable(m, n[1:{}], Bin)'.format(2*FootstepPlanner.MAXFOOTSTEPS)) # binary variables for nominal regions
 			if(self.hasNominal): # Nominal Regions
@@ -500,18 +500,38 @@ class FootstepPlanner:
 			self.solType = 2
 
 	def showSolution(self, save=False):
+		# Print Footsteps and Angles (Sine + Cosine)
 		print(str(self.numFootsteps) + " Footsteps:")
 		for i in range(self.footsteps.shape[0]):
 			print("[" + str(self.footsteps[i][0]) + ", " + str(self.footsteps[i][1]) + ", " + str(((180/math.pi) * self.footsteps[i][2])) + "]; (" + str(self.cosApprox[i]) + ", " + str(self.sinApprox[i]) + ")")
 
+		# Check whether solution is up to date
 		if(self.solType<0):
-			print("Solution not up to date; please run solve() to update the solution")
-		p = Plotter(self.dim, self.goal, self.footsteps, self.sinApprox, self.cosApprox, self.numFootsteps, self.c1, self.r1, self.c2, self.r2)
+			raise ValueError("Solution not up to date; please run solve() to update the solution")
+
+		# Create Plotter object
+		p = Plotter(self.dim, self.goal, self.footsteps, self.sinApprox, self.cosApprox, self.numFootsteps)
+
+		# Pass reachable regions based on solution type
+		if(self.solType == 2):
+			p.setType('DIAMOND')
+			p.setReachableDiamonds(self.reachableChull, self.offset)
+		else:
+			p.setType('CIRCLE')
+			p.setReachableCircles(self.c1, self.r1, self.c2, self.r2)
+
+		# Set nominal regions
 		if(self.hasNominal):
 			p.setNominal(self.nominal)
+
+		# Set Obstacle Free regions
 		if(self.hasObstacleFree):
 			p.setObstacleFree(self.oChulls)
+
+		# Plot regions
 		p.plot()
+
+		# Save/Show
 		if(save):
 			p.save()
 		p.show()
